@@ -1,0 +1,110 @@
+[project]
+name = "fastapi-core-base"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14.2"
+
+# 3. WEB FRAMEWORK & ASGI INFRASTRUCTURE (Core Engine)
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "uvloop; sys_platform != 'win32'",
+    "python-multipart",
+    "slowapi",
+]
+
+[dependency-groups]
+
+# 1. LINTING, FORMATTING & QUALITY ASSURANCE
+qa = ["ruff", "mypy", "pytest", "pytest-cov", "pre-commit"]
+
+# 2. ENVIRONMENT & CONFIGURATION MANAGEMENT
+config = ["python-dotenv", "dynaconf"]
+
+# 4. DATA VALIDATION & SERIALIZATION
+validation = ["pydantic", "pydantic-settings", "orjson"]
+
+# 5. ASYNCHRONOUS I/O & CONCURRENCY
+asyncio = ["asyncio"]
+
+# 6. HTTP CLIENTS & NETWORKING
+networking = ["httpx"]
+
+# 7. GOOGLE CLOUD PLATFORM (GCP) INTEGRATION
+gcp = [
+    "google-cloud-secret-manager",
+    "google-cloud-logging",
+    "google-cloud-storage",
+    "functions-framework",
+]
+
+# 8. DATABASE & ORM LAYER
+database = ["sqlalchemy", "alembic", "asyncpg", "duckdb"]
+
+# 9. DATA MANIPULATION & ANALYSIS (The Parquet Stack)
+data = [
+    "polars",
+    "dask[complete]",
+    "pyarrow",
+    "pandas",
+    "universal-pathlib",
+    "gcsfs",
+    "adbc-driver-manager",
+    "adbc-driver-postgresql",
+    "openpyxl",
+    "filelock",
+]
+
+# 10. OBSERVABILITY & MONITORING
+observability = ["ddtrace"]
+
+# 11. TASK QUEUES, REDIS & CACHING
+cache = ["redis", "rq", "fastapi-cache2[redis]"]
+
+# 12. PROJECT UTILITIES
+utils = ["pip-tools", "uv", "fastapi-pagination"]
+
+
+[tool.ruff]
+# Target version for the latest Python features
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+# 2. THE "FLAKE8" & "ISORT" REPLACEMENT (Linting & Sorting)
+# E/W = pycodestyle (flake8)
+# F = pyflakes (flake8)
+# I = isort (import sorting)
+# B = flake8-bugbear (common bugs)
+# UP = pyupgrade (modernizes syntax)
+select = ["E", "W", "F", "I", "B", "UP", "ASYNC"]
+ignore = ["E501"]                                 # Ignore line-length warnings (let the formatter handle it)
+
+[tool.ruff.lint.isort]
+# Ensures imports are sorted automatically
+combine-as-imports = true
+force-single-line = false
+
+[tool.ruff.format]
+# Matches Black's style exactly
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint.perfl]
+# Performance rules (e.g., avoiding list.append in loops)
+ignore = ["PERF401"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+exclude = ["venv", ".venv", "tests"]
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+addopts = "--cov=src --cov-report=term-missing"
+asyncio_mode = "auto"

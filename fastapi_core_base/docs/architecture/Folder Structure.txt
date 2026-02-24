@@ -1,0 +1,99 @@
+fastapi_core_base/              # Project Root (Git Root)
+├── .venv/                      # Local Virtual Environment (Gitignored)
+├── .python-version             # Python version pin (e.g., 3.12)
+├── .cursor/                    # AI/Editor configurations
+├── .vscode/                    # VS Code settings, launch, & snippets
+│
+├── config/                     # DYNACONF SETTINGS HUB
+│   ├── settings.toml           # Global default settings (DB ports, Redis keys)
+│   ├── client_a.toml           # Client A specific overrides (GCS Buckets, IDs)
+│   ├── client_b.toml           # Client B specific overrides
+│   └── client_c.toml           # Client C specific overrides
+│
+├── src/                        # THE SOURCE CODE ROOT
+│   ├── __init__.py
+│   ├── shared/                 # THE SHARED CORE (The "Brain")
+│   │   ├── __init__.py
+│   │   ├── auth/               # Shared JWT, Permissions, Decorators
+│   │   ├── db/                 # SQLAlchemy engine, Mixins, Session management
+│   │   ├── redis/              # Redis client and caching logic
+│   │   ├── logging/            # Centralized JSON Logger (writes to /logs)
+│   │   ├── data/               # Parquet & DuckDB utility helpers
+│   │   ├── tasks/              # <--- CLOUD TASKS QUEUING LOGIC
+│   │   │   ├── __init__.py
+│   │   │   └── client.py       # Logic to push tasks to GCP Cloud Tasks
+│   │   ├── services/           # GLOBAL INFRASTRUCTURE SERVICES
+│   │   │   ├── __init__.py
+│   │   │   ├── mailer.py       # SES/SendGrid wrapper
+│   │   │   └── filesystem.py   # S3/GCS/Local storage wrapper
+│   │   └── config.py           # Dynaconf initialization & validation logic
+│   │
+│   ├── app/                    # MAIN FASTAPI SERVICE (Modular Monolith)
+│   │   ├── __init__.py
+│   │   ├── api/                # API Versions & Specialized Routes
+│   │   │   └── v1/
+│   │   │       ├── cron.py     # Cloud Scheduler HTTP Targets
+│   │   │       └── ingestion.py # Data Ingestion API Endpoints
+│   │   ├── users/              # Domain: User management
+│   │   ├── tenants/            # Domain: Tenant/Client management
+│   │   ├── modules/            # Business-specific modules (Module A, B)
+│   │   ├── extensions/         # Custom Middleware, Correlation IDs
+│   │   ├── main.py             # FastAPI Entry Point (uvicorn core)
+│   │   └── routes.py           # Master Route Registry (links all modules)
+│   │
+│   ├── cloud_run/              # INDEPENDENT CONTAINERS (Heavy Workers)
+│   │   └── data_processor/     # Heavy async worker using src.shared
+│   │       ├── main.py
+│   │       └── Dockerfile      # Independent Dockerfile
+│   │
+│   └── cloud_functions/        # EVENT-DRIVEN FUNCTIONS (Tiny Triggers)
+│       └── gcs_handler/        # GCS/PubSub Trigger using src.shared
+│           └── main.py         # Functions Framework entry
+│
+├── scripts/                    # MAINTENANCE & CLI UTILITIES
+│   ├── bootstrap_client.py     # Setup script for new client environments
+│   └── seed_db.py              # Initial DB seeding for local testing
+│
+├── tests/                      # PROJECT-WIDE TEST SUITE
+│   ├── conftest.py             # Shared Pytest fixtures
+│   ├── app/                    # Tests for the main FastAPI service
+│   └── shared/                 # Tests for internal core libraries
+│
+├── docs/                       # PROJECT DOCUMENTATION
+│   ├── architecture/           # System diagrams (ADRs)
+│   ├── jira/                   # Task tracking & status docs
+│   └── technical/              # API Specs and setup guides
+│
+├── logs/                       # Application logs (Gitignored)
+│   └── app.log
+│
+├── duckdb_data/                # CLIENT DUCKDB STORAGE (Gitignored)
+│   ├── client_a/               # Partitioned by client
+│   │   └── local.db
+│   └── client_b/
+│       └── local.db
+│
+├── data/                       # CLIENT PARQUET STORAGE (Gitignored)
+│   ├── client_a/               # Follows same naming convention
+│   │   ├── raw/
+│   │   └── processed/
+│   └── client_b/
+│       ├── raw/
+│       └── processed/
+│
+├── .env                        # Local secret overrides (Gitignored)
+├── .secrets.toml               # Dynaconf secrets (Gitignored)
+├── .secrets.baseline           # Detect-secrets security baseline
+├── .gitignore                  # Master Gitignore
+├── .editorconfig               # Code style consistency
+├── .pre-commit-config.yaml      # Quality Gate (Ruff, Mypy, Format)
+├── .markdownlint-cli2.yaml     # Markdown linting rules
+├── .coverage                   # Coverage report data (Gitignored)
+├── bitbucket-pipelines.yml      # CI/CD pipelines (Bitbucket)
+├── Makefile                    # Shortcut Runner (make sync, make lint)
+├── Dockerfile                  # Master Dockerfile (Main Web App)
+├── pyproject.toml              # UV Dependency Groups & Tool Config
+├── uv.lock                     # UV Lockfile
+├── alembic.ini                 # Database migrations config
+├── README.md                   # Project overview
+└── MANIFEST.in                 # Packaging inclusions

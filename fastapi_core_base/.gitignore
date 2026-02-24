@@ -1,0 +1,70 @@
+# ==========================================
+# 1. Python & Environment
+# ==========================================
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# ==========================================
+# 2. Local Configuration & Secrets
+# ==========================================
+.env
+.secrets.toml
+# Optional: Ignore client-specific configs if they contain sensitive IP
+# config/client_*.toml 
+
+# ==========================================
+# 3. Application Logs
+# ==========================================
+logs/*
+# Keep the directory but ignore files
+!logs/.gitkeep
+
+# ==========================================
+# 4. Local Databases (DuckDB & SQLite)
+# ==========================================
+duckdb_data/**/*
+*.db
+*.db-journal
+*.wal
+# Keep the directory structure
+!duckdb_data/.gitkeep
+
+# ==========================================
+# 5. Data Storage (Parquet, CSV, JSON)
+# ==========================================
+data/**/*
+*.parquet
+*.csv
+*.jsonl
+# Keep the directory structure
+!data/.gitkeep
+
+# ==========================================
+# 6. IDE & Tools
+# ==========================================
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.DS_Store
+*.swp
+
+# ==========================================
+# 7. Infrastructure & Deployment
+# ==========================================
+# If you use terraform later
+.terraform/
+*.tfstate
+*.tfstate.backup
