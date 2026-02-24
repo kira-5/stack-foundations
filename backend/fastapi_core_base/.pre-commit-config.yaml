@@ -1,0 +1,332 @@
+---
+# This is a pre-commit configuration file
+# Grouped by: Local Utilities, Global Sanity, Formatting, Security, and Linting.
+
+# Set fail_fast to true to stop as soon as one hook fails
+fail_fast: true
+
+# Exclude frontend and templates from global hooks
+exclude: "(frontend|backend/app/assets/templates)/.*"
+
+default_language_version:
+  python: python3.12
+
+repos:
+  # ===========================================================================
+  # 1. LOCAL UTILITIES (Project-Specific)
+  # ===========================================================================
+  - repo: local
+    hooks:
+      - id: remove-excel-csv
+        name: 🧹 Remove Data Artifacts (Excel/CSV)
+        entry: >
+          bash -c 'find . -type f \( -name "*.xlsx" -o -name "*.csv" \)
+          -not -path "./frontend/*"
+          -not -path "./backend/app/assets/templates/*"
+          -exec rm -f {} + &&
+          echo "Cleaned Excel/CSV files"'
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: enforce-docs-placement
+        name: 🚫 Enforce Unified Docs (Root /docs/ only)
+        description: Prevents creating 'docs' directories outside the project root.
+        entry: >
+          bash -c 'echo "❌ ERROR: Documentation must be placed in the root /docs/ directory."
+          && echo "To maintain project consistency, please move your docs there." && exit 1'
+        language: system
+        files: (^|.*/)docs/.*
+        exclude: ^docs/.*
+        pass_filenames: false
+
+  # ===========================================================================
+  # 2. GLOBAL SANITY & HYGIENE
+  # ===========================================================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: no-commit-to-branch
+        name: 🛡️  Protect Main Branch
+        args: [--branch, main]
+      - id: check-added-large-files
+        name: 📂 Check Large Files
+        args: ["--maxkb=500"]
+      - id: check-yaml
+        name: 📦 Validate YAML
+      - id: check-toml
+        name: 📦 Validate TOML
+      - id: check-ast
+        name: 🔍 Check Python Syntax (AST)
+      - id: check-docstring-first
+        name: 📝 Check Docstring Placement
+      - id: end-of-file-fixer
+        name: 🔚 Fix End of Files
+      - id: trailing-whitespace
+        name: ✂️  Trim Trailing Whitespace
+      - id: mixed-line-ending
+        name: 📏 Fix Line Endings (LF)
+        args: [--fix=lf]
+      - id: check-case-conflict
+        name: 🔠 Check Case Conflicts
+      - id: debug-statements
+        name: 🚫 Check for Debuggers
+      - id: check-merge-conflict
+        name: ⚔️  Check Merge Conflicts
+      - id: requirements-txt-fixer
+        name: 📋 Sort requirements.txt
+        stages: [manual]
+      - id: pretty-format-json
+        name: 📦 Format JSON
+        args: ["--no-sort-keys", "--autofix"]
+  - repo: local
+    hooks:
+      - id: check-branch-name
+        name: 🌿 Check Branch Name
+        description: Enforces professional git branching standards.
+        entry: >
+          bash -c '
+          local_branch="$(git rev-parse --abbrev-ref HEAD)";
+          valid_regex="^([a-z0-9_-]+/)?(feature|fix|hotfix|chore|docs|refactor|test|optim|release)/.*";
+          if [[ ! $local_branch =~ $valid_regex ]]; then
+              echo -e "\n❌ ERROR: Invalid branch name: \"$local_branch\"";
+              echo -e "🌿 Branching standards require prefixes like: feature/, fix/, hotfix/, chore/, docs/, etc.";
+              echo -e "\n💡 ACTION REQUIRED: Rename your branch using:";
+              echo -e "   git branch -m <type>/your-description\n";
+              exit 1;
+          fi'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+  - repo: local
+    hooks:
+      - id: check-commit-msg
+        name: 📝 Check Commit Message
+        description: Enforces Conventional Commits standards.
+        entry: >
+          bash -c '
+          commit_msg=$(cat "$1");
+          valid_regex="^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-z0-9-]+\))?!?: .+$";
+          if [[ ! "$commit_msg" =~ $valid_regex ]]; then
+              echo -e "\n❌ ERROR: Invalid commit message format.";
+              echo -e "📝 Conventional Commits required: <type>(<scope>): <description>";
+              echo -e "🌿 Allowed types: feat, fix, docs, refactor, chore, test, etc.";
+              echo -e "\n💡 ACTION REQUIRED: Fix your message using:";
+              echo -e "   git commit --amend\n";
+              exit 1;
+          fi'
+        language: system
+        stages: [commit-msg]
+
+  # - repo: https://github.com/codespell-project/codespell
+  #   rev: v2.4.1
+  #   hooks:
+  #     - id: codespell
+  #       name: 📖 Check Spelling
+  #       args: ["-w", "-L", "sur,nd,som"] # -w for write (autofix), -L for ignore list
+
+  - repo: https://github.com/econchick/interrogate
+    rev: 1.7.0
+    hooks:
+      - id: interrogate
+        name: 🔍 Docstring Coverage (Interrogate)
+        args: ["-vv", "--fail-under=60", "backend"]
+        exclude: ^(tests|docs|backend/app/assets/templates)/.*
+
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.17.2
+    hooks:
+      - id: markdownlint-cli2
+        name: 📝 Lint Markdown (Automated Excellence)
+        args: ["--fix"]
+        exclude: ^(tests|backend/app/assets/templates)/.*
+
+  # ===========================================================================
+  # 3. SECURITY GUARDRAILS
+  # ===========================================================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: detect-private-key
+        name: 🔑 Detect Private Keys
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        name: 🕵️  Detect Secrets
+        args: ["--baseline", "backend/.secrets.baseline"]
+        exclude: (not_delivered/.*|backend/.secrets.baseline)
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.3
+    hooks:
+      - id: bandit
+        name: 🛡️  Security Audit (Bandit)
+        args: ["-r", "-lll"] # Recursive, low severity and up
+        files: ^backend/app/
+
+  # - repo: local
+  #   hooks:
+  #     - id: pip-audit
+  #       name: 🛡️  Dependency Audit (pip-audit)
+  #       entry: pip-audit
+  #       args: ["-r", "backend/requirements.txt"]
+  #       language: system
+  #       pass_filenames: false
+
+  # ===========================================================================
+  # 4. FORMATTING (Auto-Fixers)
+  # ===========================================================================
+  - repo: https://github.com/psf/black
+    rev: 26.1.0
+    hooks:
+      - id: black
+        name: ✨ Black Formatter
+
+  - repo: https://github.com/pycqa/isort
+    rev: 6.0.0
+    hooks:
+      - id: isort
+        name: 🗂️  Sort Imports
+
+  - repo: https://github.com/asottile/add-trailing-comma
+    rev: v4.0.0
+    hooks:
+      - id: add-trailing-comma
+        name: 콤 Add Trailing Commas
+        args: []
+
+  - repo: https://github.com/PyCQA/docformatter
+    rev: v1.7.7
+    hooks:
+      - id: docformatter
+        name: 📖 Format Docstrings
+        args: ["--in-place", "--wrap-summaries=88"]
+
+  # ===========================================================================
+  # 5. LINTING & MODERNIZATION
+  # ===========================================================================
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.3.2
+    hooks:
+      - id: autoflake
+        name: 🚿 Clean Unused Imports/Vars
+        args:
+          - "--remove-all-unused-imports"
+          - "--remove-unused-variables"
+          - "--expand-star-imports"
+          - "--ignore-init-module-imports"
+          - "--in-place"
+          - "--recursive"
+          - "--verbose"
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+        name: 🐍 Flake8 (Style Guide)
+        args: ["--max-line-length=120", "--ignore=F841,W503,E203,E501,E402"]
+        exclude: ".*queries.py"
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.21.2
+    hooks:
+      - id: pyupgrade
+        name: 🆙 Modernize Python Syntax
+        types: [python]
+        # pass_filenames: false
+        args: ["--py312-plus"]
+
+  # ===========================================================================
+  # 6. ADVANCED VALIDATION & DEPENDENCIES
+  # ===========================================================================
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: v0.25
+    hooks:
+      - id: validate-pyproject
+        name: 📋 Validate pyproject.toml
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+        name: 🧱 Lint YAML
+        args: ["-d", "{extends: default, rules: {line-length: {max: 120}}}"]
+
+  # - repo: https://github.com/pappasam/toml-sort
+  #   rev: v0.24.2
+  #   hooks:
+  #     - id: toml-sort
+  #       name: 🧹 Sort TOML Configurations
+  #       args: ["--in-place", "--all"]
+  #       files: \.toml$
+
+  # - repo: https://github.com/fpgmaas/deptry
+  #   rev: 0.20.0
+  #   hooks:
+  #     - id: deptry
+  #       name: 📦 Dependency Guard (deptry)
+  #       args: ["backend", "--requirements-files", "backend/requirements.txt"]
+
+  - repo: https://github.com/AleksaC/hadolint-py
+    rev: v2.14.0
+    hooks:
+      - id: hadolint
+        name: 🐳 Dockerfile Audit (Hadolint)
+        files: ^backend/Dockerfile$
+
+  # ===========================================================================
+  # 7. OPTIONAL DEVELOPMENT CHECKS (DISABLED)
+  # ===========================================================================
+  # These are currently disabled to allow heritage code to pass.
+  # Enable these manually for incremental quality debt reduction.
+
+  # - repo: https://github.com/pycqa/pylint
+  #   rev: v3.3.1
+  #   hooks:
+  #     - id: pylint
+  #       name: 🔍 Pylint (Constants/Queries)
+  #       args: []
+  #       files: '^(.*constant.*|.*queries.*)\.py$'
+
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: v1.13.0
+  #   hooks:
+  #     - id: mypy
+  #       name: 🛡️ Mypy Type Checking
+  #       args: ["--ignore-missing-imports", "--show-error-codes"]
+
+  # - repo: https://github.com/fsouza/mirrors-pyright
+  #   rev: v1.1.389
+  #   hooks:
+  #     - id: pyright
+  #       name: 🛡️ Pyright (Database Layer)
+  #       args: ["backend/app/db/"]
+
+  # ===========================================================================
+  # 8. COMPLETION MESSAGE
+  # ===========================================================================
+  - repo: local
+    hooks:
+      - id: post-pre-commit-message
+        name: ✅ Success Message
+        entry: >-
+          bash -c 'echo -e "\n✨ Quality Gate passed! All pre-commit hooks clear.\n\n🚀 Next steps: git add . && git
+          commit -m \"feat: <description>\" && git push origin \$(git branch --show-current)\n"'
+        language: system
+        always_run: true
+        pass_filenames: false
+        verbose: true
+
+ci:
+  autofix_commit_msg: "chore(pre-commit): automated quality gate fixes [pre-commit.ci]"
+  autofix_prs: true
+  autoupdate_branch: ""
+  autoupdate_commit_msg: "chore(pre-commit): ⬆ pre-commit autoupdate [pre-commit.ci]"
+  autoupdate_schedule: weekly
+  skip: [requirements-txt-fixer]
+  show_diff_on_failure: true
+  submodules: false
+  max_parallel: 4
+  retry_failed_hooks: 2

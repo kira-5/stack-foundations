@@ -95,5 +95,7 @@ fastapi_core_base/              # Project Root (Git Root)
 ├── pyproject.toml              # UV Dependency Groups & Tool Config
 ├── uv.lock                     # UV Lockfile
 ├── alembic.ini                 # Database migrations config
-├── README.md                   # Project overview
-└── MANIFEST.in                 # Packaging inclusions
+├── MANIFEST.in                 # Packaging inclusions
+├── setup.py                    # Legacy compatibility (optional)
+├── requirements.txt            # Master export (generated)
+└── README.md                   # Project overview

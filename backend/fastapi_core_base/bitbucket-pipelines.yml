@@ -1,0 +1,180 @@
+---
+# Base Image
+image: python:3.12-slim
+
+# Global Options
+options:
+  docker: true
+  size: 2x
+
+# Global Clone Settings
+clone:
+  depth: full # SonarCloud scanner needs the full history to assign issues properly
+
+# Definitions
+definitions:
+  services:
+    docker:
+      memory: 4096
+
+  caches:
+    sonar: ~/.sonar/cache
+    pip: ~/.cache/pip
+    pre-commit: ~/.cache/pre-commit
+
+  steps:
+    - step: &pre-commit-gate
+        name: 🛡️ Pre-commit Gate
+        caches:
+          - pip
+          - pre-commit
+        script:
+          - apt-get update && apt-get install -y git libatomic1 openssh-client --no-install-recommends
+          - cd backend
+          - pip install pre-commit
+          - pre-commit run --all-files --show-diff-on-failure
+
+    - step: &security-scan
+        name: 🔍 Security Scan
+        script:
+          - pipe: atlassian/git-secrets-scan:0.4.3
+
+    - step: &check-quality-gate-sonarcloud
+        name: 🏁 Quality Gate Check
+        script:
+          - pipe: sonarsource/sonarcloud-quality-gate:0.1.6
+            variables:
+              SONAR_TOKEN: ${SONAR_TOKEN}
+              DEBUG: "true"
+              EXTRA_ARGS: >
+                -Dsonar.issue.ignore.multicriteria=e1
+                -Dsonar.issue.ignore.multicriteria.e1.ruleKey=javascript:S6774
+                -Dsonar.issue.ignore.multicriteria.e1.resourceKey=**/*.js,**/*.jsx
+
+    - step: &run-tests
+        name: 🧪 Unit Test Suite
+        caches:
+          - pip
+        script:
+          - apt-get update && apt-get install -y git libatomic1 openssh-client --no-install-recommends
+          # TODO: Re-enable once MTP_WORKSPACE_TOKEN is added to Repository Variables
+          # - >-
+          #   git config --global url."https://x-token-auth:${MTP_WORKSPACE_TOKEN}@bitbucket.org/".insteadOf
+          #   "ssh://git@bitbucket.org/"
+          # - pip install -r backend/requirements.txt
+          # - make test
+        artifacts:
+          - backend/test-coverage.xml
+          - backend/test-results.xml
+
+    - step: &scan-sonarcloud
+        name: 🔍 SonarCloud Scan
+        script:
+          - pipe: sonarsource/sonarcloud-scan:2.0.0
+            variables:
+              SONAR_TOKEN: ${SONAR_TOKEN}
+              DEBUG: "true"
+              EXTRA_ARGS: >
+                -Dsonar.python.coverage.reportPaths=backend/test-coverage.xml
+                -Dsonar.python.xunit.reportPath=backend/test-results.xml
+                -Dsonar.exclusions="config/**,drivers/**,public/**,scripts/**,src/vendor/**,src/assets/**,src/components/**/*.test.js,craco.config.js,frontend/src/constants/*,frontend/src/constants/**/*/**,frontend/src/components/createStrategy/**/*/**,node_modules"
+                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+                -Dsonar.issue.ignore.multicriteria=e1
+                -Dsonar.issue.ignore.multicriteria.e1.ruleKey=javascript:S6774
+                -Dsonar.issue.ignore.multicriteria.e1.resourceKey=**/*.js,**/*.jsx
+
+    - step: &run-awx-job
+        name: Run AWX Job
+        script:
+          - echo "🚀 Preparing deployment to ${BITBUCKET_DEPLOYMENT_ENVIRONMENT}..."
+          - python3 -m pip install requests==2.28.1
+          # TODO: Add the actual AWX trigger command here
+          # Example: python3 ./scripts/trigger_awx.py --env $BITBUCKET_DEPLOYMENT_ENVIRONMENT
+
+# Pipeline Configuration
+pipelines:
+  # 1. SPECIFIC BRANCHES (Deployment)
+  # These are matched first. We run scans AND deploy to ensure safety.
+  # NOTE: SonarCloud steps are temporarily commented out because the project
+  # hasn't been created on SonarCloud yet. Uncomment them once setup is complete.
+  branches:
+    # --- DEV ENVIRONMENT ---
+    # Supports current (basepricing/optim/develop) and future (develop/dev) branch names
+    "{basepricing/optim/develop,develop/dev}":
+      - step: *pre-commit-gate
+      # - step: *run-tests
+      - parallel:
+          - step: *security-scan
+          # - step: *scan-sonarcloud
+      # - step: *check-quality-gate-sonarcloud
+      - step:
+          <<: *run-awx-job
+          name: "🚀 Deploy: Dev"
+          trigger: manual
+          deployment: dev
+
+    # --- TEST & UAT ENVIRONMENTS ---
+    # Matches dynamic release branches (e.g., release/8.0.19)
+    # Handles both Test (Auto) and UAT (Manual) sequentially.
+    "release/*":
+      - step: *pre-commit-gate
+      # - step: *run-tests
+      - parallel:
+          - step: *security-scan
+          # - step: *scan-sonarcloud
+      # - step: *check-quality-gate-sonarcloud
+      - step:
+          <<: *run-awx-job
+          name: "🚀 Deploy: Test"
+          trigger: manual
+          deployment: test
+      - step:
+          <<: *run-awx-job
+          name: "🚀 Deploy: UAT"
+          trigger: manual # Manual trigger for UAT validation after Test
+          deployment: uat
+
+    # --- PRODUCTION ENVIRONMENT ---
+    main:
+      - step: *pre-commit-gate
+      # - step: *run-tests
+      - parallel:
+          - step: *security-scan
+          # - step: *scan-sonarcloud
+      # - step: *check-quality-gate-sonarcloud
+      - step:
+          <<: *run-awx-job
+          name: "🚀 Deploy: Prod"
+          trigger: manual
+          deployment: prod
+
+    # 2. WILDCARD BRANCHES (Quality Gate only)
+    # Generic development branches that are not direct deployments
+    develop/*:
+      - step: *pre-commit-gate
+      # - step: *run-tests
+      - parallel:
+          - step: *security-scan
+          # - step: *scan-sonarcloud
+        # - step: *check-quality-gate-sonarcloud
+
+  # 3. PULL REQUESTS
+  # Every PR undergoes the full quality gate check
+  pull-requests:
+    "**":
+      - step: *pre-commit-gate
+      # - step: *run-tests
+      - parallel:
+          - step: *security-scan
+          # - step: *scan-sonarcloud
+        # - step: *check-quality-gate-sonarcloud
+
+  # 4. MANUAL TRIGGER
+  custom:
+    scan:
+      - step: *pre-commit-gate
+      # - step: *run-tests
+      - parallel:
+          - step: *security-scan
+          # - step: *scan-sonarcloud
+        # - step: *check-quality-gate-sonarcloud
