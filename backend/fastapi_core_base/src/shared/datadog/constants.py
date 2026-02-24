@@ -1,0 +1,53 @@
+"""Constants and default values for Datadog configuration."""
+
+# Default sampling rates (0.0 to 1.0)
+DEFAULT_MAIN_APP_SAMPLE_RATE = 1.0  # 100% - keep all main app traces
+DEFAULT_REDIS_SAMPLE_RATE = 0.1  # 10% - high volume service
+DEFAULT_POSTGRES_SAMPLE_RATE = 0.1  # 10% - high volume service
+DEFAULT_REQUESTS_SAMPLE_RATE = 0.5  # 50% - moderate volume
+DEFAULT_AIOHTTP_SAMPLE_RATE = 0.5  # 50% - moderate volume
+DEFAULT_GRPC_SAMPLE_RATE = 0.3  # 30% - Secret Manager calls (infrastructure, lower volume)
+DEFAULT_MISC_SAMPLE_RATE = 0.5  # 50% - Miscellaneous operations (templates, unknown spans)
+
+# Default instrumentation settings (all enabled by default)
+DEFAULT_TRACE_REDIS_ENABLED = True
+DEFAULT_TRACE_PSYCOPG_ENABLED = True
+DEFAULT_TRACE_SQLALCHEMY_ENABLED = True
+DEFAULT_TRACE_REQUESTS_ENABLED = True
+DEFAULT_TRACE_AIOHTTP_ENABLED = True
+DEFAULT_TRACE_GRPC_ENABLED = True  # gRPC is auto-instrumented by ddtrace
+
+# Default service component names
+DEFAULT_REDIS_COMPONENT = "redis"
+DEFAULT_POSTGRES_COMPONENT = "postgres"
+DEFAULT_REQUESTS_COMPONENT = "requests"
+DEFAULT_AIOHTTP_COMPONENT = "aiohttp"
+DEFAULT_GRPC_COMPONENT = "grpc"
+DEFAULT_MISC_COMPONENT = "misc"
+DEFAULT_SERVER_IDENTIFIER = "be"  # Backend identifier
+
+# Configuration keys
+CONFIG_KEY_REDIS_SAMPLE_RATE = "DD_TRACE_REDIS_SAMPLE_RATE"
+CONFIG_KEY_POSTGRES_SAMPLE_RATE = "DD_TRACE_POSTGRES_SAMPLE_RATE"
+CONFIG_KEY_REQUESTS_SAMPLE_RATE = "DD_TRACE_REQUESTS_SAMPLE_RATE"
+CONFIG_KEY_AIOHTTP_SAMPLE_RATE = "DD_TRACE_AIOHTTP_SAMPLE_RATE"
+CONFIG_KEY_GRPC_SAMPLE_RATE = "DD_TRACE_GRPC_SAMPLE_RATE"
+CONFIG_KEY_MISC_SAMPLE_RATE = "DD_TRACE_MISC_SAMPLE_RATE"
+CONFIG_KEY_MAIN_SAMPLE_RATE = "DD_TRACE_SAMPLE_RATE"
+
+CONFIG_KEY_REDIS_ENABLED = "DD_TRACE_REDIS_ENABLED"
+CONFIG_KEY_PSYCOPG_ENABLED = "DD_TRACE_PSYCOPG_ENABLED"
+CONFIG_KEY_SQLALCHEMY_ENABLED = "DD_TRACE_SQLALCHEMY_ENABLED"
+CONFIG_KEY_REQUESTS_ENABLED = "DD_TRACE_REQUESTS_ENABLED"
+CONFIG_KEY_AIOHTTP_ENABLED = "DD_TRACE_AIOHTTP_ENABLED"
+CONFIG_KEY_GRPC_ENABLED = "DD_TRACE_GRPC_ENABLED"
+
+# Service naming mode configuration
+CONFIG_KEY_SERVICE_NAMING_MODE = "DD_SERVICE_NAMING_MODE"
+DEFAULT_SERVICE_NAMING_MODE = "separate"  # Options: "separate", "component_tags", "hybrid", "service_centric"
+
+# Service naming mode constants
+SERVICE_NAMING_MODE_SEPARATE = "separate"  # Explicit service naming (5.0/5 rating)
+SERVICE_NAMING_MODE_COMPONENT_TAGS = "component_tags"  # Separate services + custom tags (4.7/5 rating)
+SERVICE_NAMING_MODE_HYBRID = "hybrid"  # Selective separation (4.0/5 rating)
+SERVICE_NAMING_MODE_SERVICE_CENTRIC = "service_centric"  # Unified view (3.0/5 rating)

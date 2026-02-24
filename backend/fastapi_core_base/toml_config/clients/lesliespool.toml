@@ -1,0 +1,129 @@
+###############################################################################
+# Leslies Pool Supplies Client Configuration
+#
+# This file contains client-specific configuration values for Leslies Pool Supplies.
+# These values are used to populate the template variables in settings.toml.
+###############################################################################
+
+[DEFAULT]
+
+# =============================================================================
+# 1. Client Identity
+# =============================================================================
+
+# Client Name
+# Official name of the client (used for folders, etc.).
+CLIENT_NAME = "lesliespool"
+
+# Tenant ID
+# Unique identifier for the tenant context.
+TENANT_ID = "lesliespool"
+
+# Client Alias
+# Short alias for the client.
+CLIENT_ALIAS = "lesliespool"
+
+
+# =============================================================================
+# 2. GCP Infrastructure
+# =============================================================================
+
+# GCP Project ID
+# The ID of the Google Cloud Project.
+PROJECT_ID = "leslies-pool-supplies-181124"
+
+# GCP Project Number
+# The numeric ID of the Google Cloud Project.
+PROJECT_NUMBER = "79099303426"
+
+# GCP Project Name
+# The display name of the project.
+PROJECT_NAME = "leslies-pool-supplies"
+
+# GCS Bucket
+# Main storage bucket for this client.
+GCS_BUCKET = "lesliespool_basesmart"
+
+# Service Account Email
+# Template for the service account email (uses {env} placeholder).
+SERVICE_ACCOUNT_EMAIL = "core-leslies-{env}@leslies-pool-supplies-181124.iam.gserviceaccount.com"
+
+# Cloud Run Region
+# Region where Cloud Run services are deployed.
+CLOUD_RUN_REGION = "us-central1"
+
+
+# =============================================================================
+# 3. Secret Management
+# =============================================================================
+
+# Google Secret Name
+# Name of the secret in Secret Manager.
+GOOGLE_SECRET_NAME = "lesliespool"
+
+# MTP Secret Name
+# Name of the environment variables secret.
+MTP_SECRET_NAME = "env_variables"
+
+# Secret Version
+# Version of the secret to access.
+SECRET_VERSION = "latest"
+
+
+# =============================================================================
+# 4. Feature Toggles
+# =============================================================================
+
+# Datadog Enabled
+# Enable Datadog observability for this client.
+DATADOG_ENABLED = true
+
+
+# =============================================================================
+# 5. Job Configuration
+# =============================================================================
+
+# Cloud Run Job Pattern
+# Naming pattern for Cloud Run jobs.
+CLOUD_RUN_JOB_NAME_PATTERN = "basesmart-{client_name}-be-{env}"
+
+# Default Task Type
+# Default task to run if none specified.
+DEFAULT_TASK_TYPE = "download"
+
+# Default Download Type
+# Default data type to download.
+DEFAULT_DOWNLOAD_TYPE = "products"
+
+# Task Argument Pattern
+# Format for passing arguments to the job.
+TASK_ARG_PATTERN = "--task={task_type}"
+
+
+# =============================================================================
+# 6. External APIs
+# =============================================================================
+
+# Gurobi API URL (Default)
+GUROBI_API_URL = "http://gurobi-internal.iaproducts.ai:6673/solve_basesmart_lesliespool_test/"
+
+
+###############################################################################
+# Environment-Specific Overrides
+###############################################################################
+
+[dev]
+# Development API Endpoint
+GUROBI_API_URL = "http://gurobi-internal.iaproducts.ai:6673/solve_basesmart_lesliespool_test/"
+
+[test]
+# Testing API Endpoint
+GUROBI_API_URL = "http://gurobi-internal.iaproducts.ai:6673/solve_basesmart_lesliespool_test/"
+
+[uat]
+# UAT API Endpoint
+GUROBI_API_URL = "http://gurobi-internal.iaproducts.ai:6673/solve_basesmart_lesliespool_test/"
+
+[prod]
+# Production API Endpoint
+GUROBI_API_URL = "http://gurobi-internal.iaproducts.ai:6673/solve_basesmart_lesliespool_prod/"

@@ -1,0 +1,151 @@
+###############################################################################
+# Datadog Configuration
+#
+# All Datadog-related settings in one centralized location.
+# This file is automatically loaded by Dynaconf.
+###############################################################################
+
+[DEFAULT]
+
+# =============================================================================
+# 1. Global Controls
+# =============================================================================
+
+# Master Enable Switch
+# Toggle to enable/disable all Datadog functionality.
+DATADOG_ENABLED = false
+
+
+# =============================================================================
+# 2. Core Feature Toggles
+# =============================================================================
+
+# Tracing
+# Enable distributed tracing.
+DD_TRACE_ENABLED = true
+
+# Log Correlation
+# Inject trace IDs into application logs for correlation.
+DD_LOGS_INJECTION = true
+
+# Runtime Metrics
+# Enable collection of runtime metrics (GC, memory, CPU).
+DD_RUNTIME_METRICS_ENABLED = true
+
+# Runtime Identity
+# Tag metrics with a unique runtime ID.
+DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED = true
+
+# Profiling
+# Enable continuous profiling.
+DD_PROFILING_ENABLED = true
+
+# Instrumentation Telemetry
+# Send telemetry about the instrumentation itself.
+DD_INSTRUMENTATION_TELEMETRY_ENABLED = true
+
+# Remote Configuration
+# Allow Datadog to remotely configure the agent (usually disabled for security).
+DD_REMOTE_CONFIGURATION_ENABLED = false
+
+
+# =============================================================================
+# 3. Service Identity & Naming
+# =============================================================================
+
+# Service Naming Strategy
+# Defines how service names are constructed.
+DD_SERVICE_NAMING_MODE = "hybrid"  # Options: "separate", "component_tags", "hybrid", "service_centric"
+
+# Backend Identifier
+# Short identifier for the backend service.
+SERVER_IDENTIFIER = "be"
+
+# Base Application Name
+# The core name of the application.
+DEFAULT_APPLICATION = "core-base-pricing"
+
+# Application Version
+# The current version of the application.
+DD_VERSION = "1.0.0"
+
+# Service Name Construction (Reference)
+# DD_SERVICE = "{APPLICATION}-{CLIENT_NAME}-be-{DEPLOYMENT_ENV}"
+
+
+# =============================================================================
+# 4. Agent Configuration
+# =============================================================================
+
+# Agent URL
+# The URL of the local Datadog agent.
+DD_TRACE_AGENT_URL = "http://localhost:8126"
+
+
+# =============================================================================
+# 5. Sampling Configuration (0.0 to 1.0)
+# =============================================================================
+# Control sampling rates for different components to manage volume/cost.
+
+DD_TRACE_SAMPLE_RATE = 1.0           # Main app
+DD_TRACE_REDIS_SAMPLE_RATE = 0.1     # High volume
+DD_TRACE_POSTGRES_SAMPLE_RATE = 0.1  # High volume
+DD_TRACE_REQUESTS_SAMPLE_RATE = 0.5  # External calls
+DD_TRACE_AIOHTTP_SAMPLE_RATE = 0.5   # Async calls
+DD_TRACE_GRPC_SAMPLE_RATE = 0.3      # Infrastructure
+DD_TRACE_MISC_SAMPLE_RATE = 0.5      # Other
+
+
+# =============================================================================
+# 6. Integration Toggles (Instrumented Libraries)
+# =============================================================================
+# Control which specific libraries are auto-instrumented.
+
+DD_TRACE_REDIS_ENABLED = true
+DD_TRACE_PSYCOPG_ENABLED = true
+DD_TRACE_SQLALCHEMY_ENABLED = true
+DD_TRACE_REQUESTS_ENABLED = true
+DD_TRACE_AIOHTTP_ENABLED = true
+DD_TRACE_GRPC_ENABLED = true
+
+
+# =============================================================================
+# 7. Framework Specifics (FastAPI)
+# =============================================================================
+
+# Custom Spans
+# Use custom spans for better control over trace structure.
+DD_USE_CUSTOM_SPAN = true
+
+# Auto-Instrumentation
+# Disable auto-instrumentation if using custom spans to avoid noise.
+DD_TRACE_FASTAPI_ENABLED = false
+
+
+###############################################################################
+# Environment-Specific Overrides
+###############################################################################
+
+[base-pricing-dev]
+# Development Environment Overrides
+
+[base-pricing-test]
+# Testing Environment Overrides
+
+[base-pricing-uat]
+# UAT Environment Overrides
+
+[base-pricing-prod]
+# Production Environment Overrides
+
+[base-pricing-local]
+# Local Development Environment Overrides
+# These are safe defaults. Use .secrets.toml to override for debugging.
+DATADOG_ENABLED = false
+DD_TRACE_ENABLED = false
+DD_LOGS_INJECTION = false
+DD_RUNTIME_METRICS_ENABLED = false
+DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED = false
+DD_PROFILING_ENABLED = false
+DD_INSTRUMENTATION_TELEMETRY_ENABLED = false
+DD_REMOTE_CONFIGURATION_ENABLED = false

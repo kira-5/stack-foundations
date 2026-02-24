@@ -1,0 +1,82 @@
+###############################################################################
+# Base Pricing Service Configuration
+#
+# This file contains application core settings.
+# Logging settings are in logging.toml
+# Datadog settings are in datadog.toml
+###############################################################################
+
+[DEFAULT]
+
+# =============================================================================
+# 1. Application-Level Settings
+# =============================================================================
+
+# Debug Mode
+# Enable FastAPI debug mode (auto-reload, detailed errors).
+DEBUG = true
+
+# Secret Version
+# Version of Google Secret Manager secrets to access.
+SECRET_VERSION = "latest"
+
+# Dashboard Hierarchy
+# Defines the depth of the decision dashboard hierarchy.
+DECISION_DASHBOARD_HIERARCHY = 2
+
+
+# =============================================================================
+# 2. Application Metadata
+# =============================================================================
+
+# Application Name
+# Unique identifier for this application service.
+APPLICATION = "core-base-pricing"
+
+# Main Secret Name
+# Name of the primary secret in Google Secret Manager.
+MTP_SECRET_NAME = "env_variables"
+
+# BigQuery Dataset
+# Target dataset for BigQuery operations (can be empty if dynamic).
+BIQUERY_DATASET = ""
+
+# Notification Secret Name
+# Name of the secret containing email/slack credentials.
+EMAIL_NOTIFICATION_SECRET_NAME = "notification_email_credentials"
+
+
+# =============================================================================
+# 3. Redis Configuration
+# =============================================================================
+# Standard Redis defaults (can be overridden in client TOMLs or .secrets.toml).
+REDIS_DB = 0
+REDIS_MAX_CONNECTIONS = 20
+
+
+# =============================================================================
+# 4. Client & Tenant Notes
+# =============================================================================
+# Note: Client-specific settings (PROJECT_ID, TENANT_ID, etc.)
+# are loaded dynamically from client TOML files in backend/clients/.
+
+
+###############################################################################
+# Environment-Specific Overrides
+###############################################################################
+
+[dev]
+# Development Environment Overrides
+DEPLOYMENT_ENV = "dev"
+
+[test]
+# Testing Environment Overrides
+DEPLOYMENT_ENV = "test"
+
+[uat]
+# UAT Environment Overrides
+DEPLOYMENT_ENV = "uat"
+
+[prod]
+# Production Environment Overrides
+DEPLOYMENT_ENV = "prod"

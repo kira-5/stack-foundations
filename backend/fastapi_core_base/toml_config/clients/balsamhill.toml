@@ -1,0 +1,49 @@
+###############################################################################
+# Leslies Pool Supplies Client Configuration
+#
+# This file contains client-specific configuration values for Leslies Pool Supplies.
+# These values are used to populate the template variables in settings.toml.
+###############################################################################
+
+[DEFAULT]
+# Client Identity
+CLIENT_NAME = "balsamhill"
+TENANT_ID = "balsamhill"
+CLIENT_ALIAS = "balsamhill"
+
+# GCP Project Configuration
+PROJECT_ID = "balsambrands-20022025"
+PROJECT_NUMBER = "530704704674"
+PROJECT_NAME = "balsambrands"
+
+# Secret Management
+GOOGLE_SECRET_NAME = "balsamhill"
+MTP_SECRET_NAME = "env_variables"
+SECRET_VERSION = "latest"
+
+# GCS Bucket Configuration
+GCS_BUCKET = "balsam_basesmart_dev"
+SERVICE_ACCOUNT_EMAIL = "core-balsam-dev@balsambrands-20022025.iam.gserviceaccount.com"
+
+# Cloud Run Job Configuration
+CLOUD_RUN_JOB_NAME_PATTERN = "basesmart-balsam-be-{env}"
+CLOUD_RUN_REGION = "us-central1"
+DEFAULT_TASK_TYPE = "download"
+DEFAULT_DOWNLOAD_TYPE = "products"
+TASK_ARG_PATTERN = "--task={task_type}"
+
+# API Configuration
+GUROBI_API_URL = "http://gurobi-internal.iaproducts.ai:6673/solve_basesmart_lesliespool_test/"
+
+# Environment-specific API URLs
+[dev]
+GUROBI_API_URL = "http://gurobi-internal.iaproducts.ai:6673/solve_basesmart_lesliespool_test/"
+
+[test]
+GUROBI_API_URL = "http://gurobi-internal.iaproducts.ai:6673/solve_basesmart_lesliespool_test/"
+
+[uat]
+GUROBI_API_URL = "http://gurobi-internal.iaproducts.ai:6673/solve_basesmart_lesliespool_test/"
+
+[prod]
+GUROBI_API_URL = "http://gurobi-internal.iaproducts.ai:6673/solve_basesmart_lesliespool_prod/"

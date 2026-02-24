@@ -1,0 +1,104 @@
+###############################################################################
+# Saks Fifth Avenue Client Configuration
+#
+# This file contains client-specific configuration values for Saks Fifth Avenue.
+# These values are used to populate the template variables in settings.toml.
+###############################################################################
+
+[DEFAULT]
+
+# =============================================================================
+# 1. Client Identity
+# =============================================================================
+
+# Client Name
+# Official name of the client (used for folders, etc.).
+CLIENT_NAME = "saksfifthavenue"
+
+# Tenant ID
+# Unique identifier for the tenant context.
+TENANT_ID = "saksfifthavenue"
+
+# Client Alias
+# Short alias for the client.
+CLIENT_ALIAS = "saksfifthavenue"
+
+
+# =============================================================================
+# 2. GCP Infrastructure
+# =============================================================================
+
+# GCP Project ID
+# The ID of the Google Cloud Project.
+PROJECT_ID = "saksfifthavenue-27032024"
+
+# GCP Project Number
+# The numeric ID of the Google Cloud Project.
+PROJECT_NUMBER = "1056894681961"
+
+# GCP Project Name
+# The display name of the project.
+PROJECT_NAME = "saksfifthavenue"
+
+# GCS Bucket
+# Main storage bucket for this client.
+GCS_BUCKET = "saksfifthavenue_basesmart"
+
+# Service Account Email
+# Template for the service account email (uses {env} placeholder).
+SERVICE_ACCOUNT_EMAIL = "core-saksfifthavenue-{env}@saksfifthavenue-27032024.iam.gserviceaccount.com"
+
+
+# =============================================================================
+# 3. Secret Management
+# =============================================================================
+
+# Google Secret Name
+# Name of the secret in Secret Manager.
+GOOGLE_SECRET_NAME = "basesmart"
+
+# MTP Secret Name
+# Name of the environment variables secret.
+MTP_SECRET_NAME = "env_variables"
+
+# Secret Version
+# Version of the secret to access.
+SECRET_VERSION = "latest"
+
+
+# =============================================================================
+# 4. Feature Toggles
+# =============================================================================
+
+# Datadog Enabled
+# Enable Datadog observability for this client.
+DATADOG_ENABLED = true
+
+
+# =============================================================================
+# 5. External APIs
+# =============================================================================
+
+# Gurobi API URL (Default)
+GUROBI_API_URL = "http://gurobi-internal.iaproducts.ai:6673/solve_basesmart_saksfifthavenue_test/"
+
+
+###############################################################################
+# Environment-Specific Overrides
+###############################################################################
+
+[dev]
+# Development API Endpoint
+GUROBI_API_URL = "http://gurobi-internal.iaproducts.ai:6673/solve_basesmart_saksfifthavenue_test/"
+
+[test]
+# Testing API Endpoint
+GUROBI_API_URL = "http://gurobi-internal.iaproducts.ai:6673/solve_basesmart_saksfifthavenue_test/"
+
+[uat]
+# UAT API Endpoint
+GUROBI_API_URL = "http://gurobi-internal.iaproducts.ai:6673/solve_basesmart_saksfifthavenue_prod/"
+
+[prod]
+# Production API Endpoint
+GUROBI_API_URL = "http://gurobi-internal.iaproducts.ai:6673/solve_basesmart_saksfifthavenue_prod/"

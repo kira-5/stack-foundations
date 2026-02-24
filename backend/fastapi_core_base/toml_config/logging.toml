@@ -1,0 +1,103 @@
+###############################################################################
+# Logging Configuration
+#
+# This file contains all logging-related settings.
+# It uses the same [DEFAULT] + [env] override structure as settings.toml.
+###############################################################################
+
+[DEFAULT]
+
+# =============================================================================
+# 1. Global Controls
+# =============================================================================
+
+# Global Logging Switch
+# Enable/Disable all application logging.
+LOGGING_ENABLED = true
+
+# Log Level
+# Set the verbosity of logs.
+LOG_LEVEL = "INFO"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+# Logger Architecture
+# Choose between a unified application logger or separate loggers per service.
+LOGGER_TYPE = "application"  # Options: "application" (unified) or "service_separated" (per-component)
+
+
+# =============================================================================
+# 2. Output Configuration
+# =============================================================================
+
+# Consoles
+# Enable logging to stdout/stderr.
+TERMINAL_LOGGING_ENABLED = true
+LOG_TERMINAL_FORMAT = "simple"
+
+# Files
+# Enable logging to a file.
+FILE_LOGGING_ENABLED = true
+LOG_FILE_FORMAT = "simple"
+LOG_FILE_PATH = "logs/app.log"
+
+# File Handler Strategy
+# Use "single" for easy local tailing, or "rotating" to simulate production log rotation.
+FILE_HANDLER_TYPE = "rotating"  # Options: Single file for local debugging or rotating for production
+LOG_FILE_MAX_BYTES = 10485760  # 10MB
+LOG_FILE_BACKUP_COUNT = 5
+
+
+# =============================================================================
+# 3. Query Logging (SQLAlchemy)
+# =============================================================================
+
+# Enable visibility into generated SQL queries.
+QUERY_LOGGING_ENABLED = false
+QUERY_LOG_FORMAT = "compact"  # Options: "detailed" (params) or "compact" (query only)
+
+
+# =============================================================================
+# 4. Service-Separated Logger Config (for LOGGER_TYPE="service_separated")
+# =============================================================================
+# Control logging for specific components when using service_separated logger.
+
+LOG_SERVICE_REDIS_ENABLED = true
+LOG_SERVICE_POSTGRES_ENABLED = true
+LOG_SERVICE_REQUESTS_ENABLED = true
+LOG_SERVICE_AIOHTTP_ENABLED = true
+LOG_SERVICE_GRPC_ENABLED = true
+LOG_SERVICE_MISC_ENABLED = true
+LOG_SERVICE_APPLICATION_ENABLED = true
+LOG_SERVICE_UVICORN_ENABLED = true
+
+
+###############################################################################
+# Environment-Specific Overrides
+###############################################################################
+
+[base-pricing-dev]
+# Development Environment Overrides
+LOG_TITLE = "base-pricing-dev"
+LOG_LEVEL = "DEBUG"
+
+[base-pricing-test]
+# Testing Environment Overrides
+LOG_TITLE = "base-pricing-test"
+
+[base-pricing-uat]
+# UAT Environment Overrides
+LOG_TITLE = "base-pricing-uat"
+
+[base-pricing-prod]
+# Production Environment Overrides
+LOG_TITLE = "base-pricing-prod"
+FILE_HANDLER_TYPE = "single"
+
+[base-pricing-local]
+# Local Development Environment Overrides
+# These are safe defaults. Use .secrets.toml to override for debugging.
+LOG_TITLE = "base-pricing-local"
+LOG_LEVEL = "DEBUG"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+LOGGER_TYPE = "service_separated"  # Options: "application" (unified) or "service_separated" (per-component)
+FILE_HANDLER_TYPE = "single"  # Options: Single file for local debugging or rotating for production
+QUERY_LOGGING_ENABLED = true
+QUERY_LOG_FORMAT = "detailed"  # Options: "detailed" (params) or "compact" (query only)
