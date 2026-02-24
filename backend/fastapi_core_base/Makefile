@@ -1,57 +1,57 @@
-# Professional Makefile for mtp-base-pricing
-# Simplified command interface for development tasks
+.PHONY: help sync lint format test run-app run-worker clean pc pc-all bootstrap
 
-.PHONY: setup install-hooks lint fix pre-commit test clean help
+# Variables
+PYTHON_VERSION := $(shell cat .python-version 2>/dev/null || echo "3.12")
+UV := uv
+PYTHON := $(UV) run python
 
-help:
-	@echo "🛠️ mtp-base-pricing Development Commands:"
-	@echo "  make setup          - Initial setup (install dependencies & hooks)"
-	@echo "  make install-hooks  - Install pre-commit hooks"
-	@echo "  make lint           - Run all Linter/Audit hooks"
-	@echo "  make fix            - Run all Auto-Fix hooks"
-	@echo "  make pre-commit     - Run pre-commit on all files"
-	@echo "  make test           - Run backend tests"
-	@echo "  make clean          - Remove temporary and build files"
+help: ## Show this help message
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-setup:
-	cd backend && pip install -r requirements.txt && pre-commit install
+sync: ## Install dependencies and sync .venv
+	$(UV) sync
 
-install-hooks:
-	cd backend && pre-commit install
+lint: ## Run linting checks (Ruff & Mypy)
+	$(UV) run ruff check src tests
+	$(UV) run mypy src
 
-lint:
-	cd backend && pre-commit run --all-files
+format: ## Format code with Ruff
+	$(UV) run ruff format src tests
 
-fix:
-	@cd backend && pre-commit run --all-files || ( \
-		EXIT_CODE=$$?; \
-		if [ $$EXIT_CODE -eq 1 ]; then \
-			echo "\n✨ Auto-fixes applied! Run 'make fix', 'make pre-commit', or 'pre-commit run --all-files' to finalize the Quality Gate. ✨\n"; \
-		else \
-			echo "\n❌ Pre-commit hooks found issues that require manual attention. ❌\n"; \
-			exit $$EXIT_CODE; \
-		fi \
-	)
+test: ## Run tests with coverage
+	$(UV) run pytest --cov=src tests/
 
-pre-commit:
-	@cd backend && pre-commit run --all-files || ( \
-		EXIT_CODE=$$?; \
-		if [ $$EXIT_CODE -eq 1 ]; then \
-			echo "\n✨ Auto-fixes applied! Run 'make fix', 'make pre-commit', or 'pre-commit run --all-files' to finalize the Quality Gate. ✨\n"; \
-		else \
-			echo "\n❌ Pre-commit hooks found issues that require manual attention. ❌\n"; \
-			exit $$EXIT_CODE; \
-		fi \
-	)
+# --- Pre-commit Aliases ---
 
-test:
-	cd backend && pytest --cov=app --cov-report=xml:test-coverage.xml --cov-report=term-missing --junitxml=test-results.xml
+pc: ## Run pre-commit on staged files only
+	$(UV) run pre-commit run
 
-clean:
+pc-all: ## Run pre-commit on all files in the repository
+	$(UV) run pre-commit run --all-files
+
+# --- Execution ---
+
+run-app: ## Run the FastAPI development server
+	$(UV) run uvicorn src.app.main:app --reload --host 0.0.0.0 --port 8000
+
+run-worker: ## Run a local Cloud Run worker
+	@echo "Starting Data Worker..."
+	$(UV) run python src/cloud_run/data_worker/main.py
+
+# --- Client Specific Helpers ---
+
+run-client-a: ## Run App specifically for Client A
+	ENV_FOR_DYNACONF=client_a $(UV) run uvicorn src.app.main:app --reload
+
+# --- Setup & Cleanup ---
+
+bootstrap: sync ## Initial project setup (create folders and install hooks)
+	mkdir -p logs data duckdb_data
+	touch logs/app.log data/.gitkeep duckdb_data/.gitkeep
+	$(UV) run pre-commit install
+	@echo "Project Bootstrapped! Try running 'make pc-all' to verify hooks."
+
+clean: ## Remove temporary files, caches, and logs
+	rm -rf .pytest_cache .ruff_cache .mypy_cache .coverage htmlcov
 	find . -type d -name "__pycache__" -exec rm -rf {} +
-	find . -type f -name "*.py[co]" -delete
-	find . -type d -name "*.egg-info" -exec rm -rf {} +
-	find . -type d -name "build" -exec rm -rf {} +
-	find . -type d -name "dist" -exec rm -rf {} +
-	find . -type d -name ".pytest_cache" -exec rm -rf {} +
-	find . -type d -name "htmlcov" -exec rm -rf {} +
+	rm -f logs/*.log

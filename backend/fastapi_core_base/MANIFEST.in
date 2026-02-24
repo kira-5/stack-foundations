@@ -1,15 +1,21 @@
 # MANIFEST.in - Ensures non-Python files are included in the package distribution.
 # Used in conjunction with 'include_package_data=True' in setup.py.
 
-# Configuration Center
-include toml_config/*.toml
-include toml_config/clients/*.toml
+# Include the project metadata
+include pyproject.toml
+include uv.lock
+include README.md
+include .python-version
+
+# Include all client configuration files
+recursive-include config *.toml
 
 # Environment template
 include .env.example
 
-# Documentation & Templates
-recursive-include app/assets/templates *
+# Include the shared services and source code
+recursive-include src *.py
+recursive-include src/shared/data *.parquet
 
 # Security & QA
 include .secrets.baseline
@@ -21,3 +27,11 @@ include pyproject.toml
 global-exclude *.pyc
 global-exclude __pycache__
 global-exclude .DS_Store
+
+# Exclude unnecessary local files
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude tests *
+recursive-exclude data *
+recursive-exclude duckdb_data *
+recursive-exclude logs *
