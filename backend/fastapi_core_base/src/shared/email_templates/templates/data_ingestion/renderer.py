@@ -4,10 +4,10 @@ import html as html_module
 from datetime import datetime, timezone
 from typing import Any
 
-from app.email_templates.shared import blocks
-from app.email_templates.shared.email_css import get_email_css
-from app.email_templates.shared.utils import format_timestamp_ist
-from app.notifier.subjects import build_standard_subject
+from src.shared.email_templates.shared import blocks
+from src.shared.email_templates.shared.email_css import get_email_css
+from src.shared.email_templates.shared.utils import format_timestamp_ist
+from src.shared.notifier.subjects import build_standard_subject
 
 # Section separator (shared by Daily Data Refresh and Baseline Metrics Refresh emails)
 SECTION_SEPARATOR = """

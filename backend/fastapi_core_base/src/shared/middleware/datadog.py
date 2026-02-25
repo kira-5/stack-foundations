@@ -344,7 +344,7 @@ class DatadogTracingMiddleware(BaseHTTPMiddleware):
         # These tags help filter/search traces by client, environment, application, server
         # Get values directly from environment or config
         try:
-            from app.configuration.config import env_config_manager
+            from src.shared.configuration.config import env_config_manager
 
             # Get dynamic values
             client = env_config_manager.get_dynamic_setting("CLIENT_NAME", None)

@@ -2,7 +2,7 @@
 
 import os
 
-from app.configuration.config import EnvConfigManager
+from src.shared.configuration.config import EnvConfigManager
 
 
 def configure_service_name(

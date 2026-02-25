@@ -65,18 +65,18 @@ REDIS_MAX_CONNECTIONS = 20
 # Environment-Specific Overrides
 ###############################################################################
 
-[dev]
+[base-pricing-dev]
 # Development Environment Overrides
 DEPLOYMENT_ENV = "dev"
 
-[test]
+[base-pricing-test]
 # Testing Environment Overrides
 DEPLOYMENT_ENV = "test"
 
-[uat]
+[base-pricing-uat]
 # UAT Environment Overrides
 DEPLOYMENT_ENV = "uat"
 
-[prod]
+[base-pricing-prod]
 # Production Environment Overrides
 DEPLOYMENT_ENV = "prod"

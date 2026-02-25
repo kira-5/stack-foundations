@@ -13,6 +13,7 @@ dependencies = [
     "python-multipart",
     "slowapi",
     "firebase-admin",
+    "google-cloud-bigquery>=3.40.1",
 ]
 
 [dependency-groups]

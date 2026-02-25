@@ -4,13 +4,13 @@ import os
 import subprocess
 from datetime import datetime
 
-from app.configuration.config import EnvConfigManager
+from src.shared.configuration.config import EnvConfigManager
 
 
 def _get_logger():
     """Get logger lazily (only when needed, after LoggerFactory is initialized)."""
     try:
-        from app.services.logger import LoggingService
+        from src.shared.services.logging_service import LoggingService
 
         return LoggingService.get_logger(__name__)
     except Exception:

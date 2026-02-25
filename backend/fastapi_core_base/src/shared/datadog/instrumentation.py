@@ -114,7 +114,7 @@ from .constants import (
 # configure it in settings.toml before calling configure_instrumentation().
 #
 # Example usage:
-#   from app.datadog.instrumentation import SERVICE_NAMING_MODE
+#   from src.shared.datadog.instrumentation import SERVICE_NAMING_MODE
 #   if SERVICE_NAMING_MODE == "separate":
 #       # Do something specific to separate services mode
 # =============================================================================
@@ -1113,7 +1113,7 @@ def configure_instrumentation(
 
     # Component tags will be added automatically by ddtrace auto-instrumentation
     # The component names are stored and can be accessed via span_processor module
-    # For manual tagging, use: from app.datadog.span_processor import add_component_tags
+    # For manual tagging, use: from src.shared.datadog.span_processor import add_component_tags
 
     # Store component names globally for use in span tagging
     # These descriptive names will be added as "component.name" tags to spans

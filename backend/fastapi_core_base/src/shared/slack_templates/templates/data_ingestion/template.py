@@ -2,9 +2,9 @@
 
 from typing import Any
 
-from app.slack_templates.base import SlackRenderResult
-from app.slack_templates.registry import register_template
-from app.slack_templates.templates.data_ingestion.renderer import build_slack_payload
+from src.shared.slack_templates.base import SlackRenderResult
+from src.shared.slack_templates.registry import register_template
+from src.shared.slack_templates.templates.data_ingestion.renderer import build_slack_payload
 
 
 @register_template

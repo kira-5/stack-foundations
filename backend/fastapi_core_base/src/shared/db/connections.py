@@ -1,13 +1,11 @@
 import asyncio
 from contextlib import asynccontextmanager
 
-import aiopg
 import asyncpg
 from google.cloud import bigquery
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from src.shared.configuration.config import env_config_manager
-from src.shared.exceptions import exception as core_exceptions
 
 
 class BigQueryConnection:
@@ -42,7 +40,6 @@ class PostgresConnection:
 
     # Internal clients and pools
     _asyncpg_client = None
-    _aiopg_pool = None
     _sqlalchemy_engine = None
     AsyncSessionLocal = None
 
@@ -56,13 +53,6 @@ class PostgresConnection:
             f"{env_config_manager.environment_settings.DB_HOST}:"
             f"{env_config_manager.environment_settings.DB_PORT}/"
             f"{env_config_manager.environment_settings.DB_NAME}"
-        )
-        cls.connection_url_aiopg = (
-            f"dbname={env_config_manager.environment_settings.DB_NAME} "
-            f"user={env_config_manager.environment_settings.DB_USER} "
-            f"password={env_config_manager.environment_settings.DB_PASSWORD} "
-            f"host={env_config_manager.environment_settings.DB_HOST} "
-            f"port={env_config_manager.environment_settings.DB_PORT}"
         )
         cls.connection_url_sqlalchemy = (
             f"postgresql+asyncpg://{env_config_manager.environment_settings.DB_USER}:"
@@ -90,24 +80,6 @@ class PostgresConnection:
                 print(f"Error connecting to PostgreSQL with asyncpg: {str(e)}")
                 raise
         return cls._asyncpg_client
-
-    @classmethod
-    async def get_aiopg_pool(cls):
-        """Retrieve or create an aiopg connection pool."""
-        if cls._aiopg_pool is None:
-            try:
-                cls._aiopg_pool = await aiopg.create_pool(
-                    cls.connection_url_aiopg,
-                    timeout=1800,
-                    minsize=10,
-                    maxsize=50,
-                    pool_recycle=300,
-                    # options="-c statement_timeout=300000 -c idle_in_transaction_session_timeout=180000",
-                )
-            except Exception as e:
-                print(f"Error creating aiopg pool: {str(e)}")
-                core_exceptions.RuntimeErrorException(str(e))
-        return cls._aiopg_pool
 
     @classmethod
     async def get_sqlalchemy_engine(cls):
@@ -138,17 +110,6 @@ class PostgresConnection:
                 except Exception as e:
                     print(f"Error during database operation with asyncpg: {str(e)}")
                     raise
-        elif cls.database_driver == "aiopg":
-            pool = await cls.get_aiopg_pool()
-            async with pool.acquire() as conn:
-                yield conn
-                # try:
-                #     yield conn
-                # except Exception as e:
-                #     print(
-                #         f"Error during database operation with aiopg: {str(e)}",
-                #     )
-                #     raise
         elif cls.database_driver == "sqlalchemy":
             engine = await cls.get_sqlalchemy_engine()
             if cls.AsyncSessionLocal is None:
@@ -178,11 +139,6 @@ class PostgresConnection:
             tasks.append(cls._asyncpg_client.close())
             cls._asyncpg_client = None
             print("Postgres asyncpg connection closed.")
-
-        if cls._aiopg_pool is not None:
-            tasks.append(cls._aiopg_pool.close())
-            cls._aiopg_pool = None
-            print("Postgres aiopg connection pool closed.")
 
         if cls._sqlalchemy_engine is not None:
             tasks.append(cls._sqlalchemy_engine.dispose())

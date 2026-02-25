@@ -3,7 +3,7 @@
 import html as html_module
 import re
 
-from app.email_templates.shared.email_css import get_email_css
+from src.shared.email_templates.shared.email_css import get_email_css
 
 # Align with data ingestion email: section separator and preheader
 SECTION_SEPARATOR_STRATEGY = """

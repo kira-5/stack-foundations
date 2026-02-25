@@ -11,7 +11,7 @@ WHY DATADOG MUST BE BEFORE OTHER IMPORTS:
 """
 
 import os
-from app.configuration.config import EnvConfigManager  # noqa: E402
+from src.shared.configuration.config import EnvConfigManager  # noqa: E402
 
 # Check DATADOG_ENABLED from config BEFORE importing ddtrace
 # This prevents "Connection refused" errors when Datadog is disabled

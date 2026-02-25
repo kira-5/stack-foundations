@@ -1,7 +1,7 @@
 # app/db/models.py
 from sqlalchemy import Column, Integer, String
 
-from app.db.base import Base
+from src.shared.db.base import Base
 
 
 class SomeModel(Base):

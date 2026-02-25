@@ -2,10 +2,10 @@
 
 from typing import Any
 
-from app.notifier.subjects import build_standard_subject
-from app.slack_templates.base import SlackRenderResult
-from app.slack_templates.shared import blocks
-from app.slack_templates.shared.utils import format_timestamp_ist
+from src.shared.notifier.subjects import build_standard_subject
+from src.shared.slack_templates.base import SlackRenderResult
+from src.shared.slack_templates.shared import blocks
+from src.shared.slack_templates.shared.utils import format_timestamp_ist
 
 
 def build_subject(context: dict[str, Any]) -> str:

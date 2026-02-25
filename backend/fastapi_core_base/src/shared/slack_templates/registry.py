@@ -1,6 +1,6 @@
 """Template registry for Slack templates."""
 
-from app.slack_templates.base import SlackTemplate
+from src.shared.slack_templates.base import SlackTemplate
 
 _TEMPLATE_REGISTRY: dict[str, type[SlackTemplate]] = {}
 

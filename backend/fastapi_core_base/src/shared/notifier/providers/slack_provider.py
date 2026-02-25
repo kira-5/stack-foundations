@@ -2,9 +2,9 @@ from typing import Any
 
 import httpx
 
-from app.notifier.payloads import SlackPayload
-from app.notifier.settings import get_notifier_setting_value
-from app.services.logger import LoggingService
+from src.shared.notifier.payloads import SlackPayload
+from src.shared.notifier.settings import get_notifier_setting_value
+from src.shared.services.logging_service import LoggingService
 
 logger = LoggingService.get_logger(__name__)
 

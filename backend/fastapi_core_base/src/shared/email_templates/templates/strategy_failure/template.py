@@ -2,9 +2,9 @@
 
 from typing import Any
 
-from app.email_templates.base import EmailRenderResult
-from app.email_templates.registry import register_template
-from app.email_templates.templates.strategy_failure.renderer import (
+from src.shared.email_templates.base import EmailRenderResult
+from src.shared.email_templates.registry import register_template
+from src.shared.email_templates.templates.strategy_failure.renderer import (
     build_email_html,
     build_subject,
 )

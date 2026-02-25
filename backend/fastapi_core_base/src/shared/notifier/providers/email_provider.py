@@ -1,9 +1,9 @@
 import smtplib
 from email.message import EmailMessage
 
-from app.configuration.config import env_config_manager
-from app.notifier.payloads import EmailPayload
-from app.services.logger import LoggingService
+from src.shared.configuration.config import env_config_manager
+from src.shared.notifier.payloads import EmailPayload
+from src.shared.services.logging_service import LoggingService
 
 logger = LoggingService.get_logger(__name__)
 

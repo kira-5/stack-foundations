@@ -1,6 +1,6 @@
 """Template registry for email templates."""
 
-from app.email_templates.base import EmailTemplate
+from src.shared.email_templates.base import EmailTemplate
 
 _TEMPLATE_REGISTRY: dict[str, type[EmailTemplate]] = {}
 

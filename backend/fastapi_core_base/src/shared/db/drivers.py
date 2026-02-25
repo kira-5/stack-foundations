@@ -7,7 +7,6 @@ class DatabaseDrivers:
     """Class to hold constants for database driver names."""
 
     ASYNC_PG: str = "asyncpg"
-    AIO_PG: str = "aiopg"
     SQL_ALCHEMY: str = "sqlalchemy"
 
 

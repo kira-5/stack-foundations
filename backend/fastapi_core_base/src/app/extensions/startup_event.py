@@ -3,7 +3,7 @@ import os
 import platform
 from datetime import datetime, timedelta
 
-from src.app.configuration.config import env_config_manager
+from src.shared.configuration.config import env_config_manager
 from src.shared.configuration.constants import LogEmoji
 from src.shared.db.connections import PostgresConnection
 from src.shared.db.drivers import DatabaseDriverManager, DatabaseDrivers
@@ -119,7 +119,7 @@ async def startup_event():
     )
 
     # Initialize the database driver once during startup
-    database_driver = DatabaseDrivers.AIO_PG
+    database_driver = DatabaseDrivers.ASYNC_PG
     DatabaseDriverManager.set_db_driver(database_driver)
     PostgresConnection.initialize(database_driver)
     # logger.info(

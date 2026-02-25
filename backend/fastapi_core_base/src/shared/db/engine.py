@@ -1,7 +1,7 @@
 # app/database/engine.py
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from app.configuration.config import env_config_manager
+from src.shared.configuration.config import env_config_manager
 
 # Connection details
 DATABASE_URL = (

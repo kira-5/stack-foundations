@@ -28,6 +28,7 @@ class EnvConfigManager:
     def __init__(self):
         load_dotenv()
         self.environment = os.getenv("env", "local")
+        self.dynaconf_env = f"base-pricing-{self.environment}"
         # DD_TRACE_AGENT_URL and DD_VERSION are now read from datadog.toml via get_dynamic_setting()
         # Keep dd_trace_agent_url for backward compatibility (fallback to env var)
         self.dd_trace_agent_url = os.getenv("DD_TRACE_AGENT_URL", None)
@@ -64,12 +65,12 @@ class EnvConfigManager:
             environments=True,
             load_dotenv=True,
             default_env="DEFAULT",
-            env=self.environment,
+            env=self.dynaconf_env,
             env_switcher="ENV_FOR_DYNACONF",
             lowercase_read=True,
             redis_enabled=True,
         )
-        initial_settings.setenv(self.environment)
+        initial_settings.setenv(self.dynaconf_env)
 
         # Step 2: Get TENANT_NAME to determine which client file to load
         tenant_name = (
@@ -182,8 +183,8 @@ class EnvConfigManager:
         # Use dynamic configuration for client-specific settings
         project_id = self.get_dynamic_setting("PROJECT_ID", "default-project")
         project_number = self.get_dynamic_setting("PROJECT_NUMBER", "123456789012")
-        secret_version = self.environment_settings.SECRET_VERSION
-        env = self.environment_settings.DEPLOYMENT_ENV
+        secret_version = self.environment_settings.get("SECRET_VERSION", "latest")
+        env = self.environment_settings.get("DEPLOYMENT_ENV", "dev")
 
         if not project_id:
             raise ValueError("PROJECT_ID must be set in the environment.")

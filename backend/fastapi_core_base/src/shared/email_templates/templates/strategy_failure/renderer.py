@@ -4,9 +4,9 @@ import html as html_module
 from datetime import datetime, timezone
 from typing import Any
 
-from app.email_templates.shared import blocks
-from app.email_templates.shared.utils import format_timestamp_ist
-from app.notifier.subjects import build_standard_subject
+from src.shared.email_templates.shared import blocks
+from src.shared.email_templates.shared.utils import format_timestamp_ist
+from src.shared.notifier.subjects import build_standard_subject
 
 
 def _is_code_syntax_error(
