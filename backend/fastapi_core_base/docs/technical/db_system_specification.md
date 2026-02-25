@@ -32,6 +32,7 @@ To reconstruct this system, an AI model must implement these five core pillars:
 *   **Pool Health Status**: Real-time reporting of active vs idle connections.
 *   **Automated Timeouts**: Dynamic session-level `statement_timeout` (30s Read/10m Write) and `lock_timeout` (10s).
 *   **Contextual Driving**: Thread-safe driver switching using `ContextVars`.
+*   **Zero-Block Watchdog**: Background execution of `EXPLAIN ANALYZE` for tracking slow queries into `base_pricing.bp_audit_slow_queries`.
 
 ---
 
@@ -65,6 +66,11 @@ To reconstruct this system, an AI model must implement these five core pillars:
 *   **Auto-Timeout Guard**: Dynamically sets `statement_timeout` (30s Read / 10m Write) and `lock_timeout` (10s) per query.
 *   **Query Classifier**: Regex-based heuristic to detect if a query is a "Read" or "Write" to apply safety settings.
 *   **Param Translation**: Automatic runtime translation of standard `:named_params` to native Postgres `$1` syntax.
+*   **Zero-Block Watchdog**: Asynchronously monitors query execution time. 
+    * If execution exceeds thresholds (e.g. `2.0s`), spins up a background thread to log an `EXPLAIN` plan into `base_pricing.bp_audit_slow_queries`. 
+    * Employs memory debouncing to prevent spamming logs (once per query per day).
+    * Enforces strict safety execution: Runs `EXPLAIN (ANALYZE, BUFFERS)` for reads, and only standard `EXPLAIN` for writes to prevent accidental data modification.
+    * Monitors both native executor paths (transactional/bulk) and C++ ADBC paths (analytical).
 
 6. **🛠️ Productivity & Architecture**
 *   **Contextual Driving**: Uses `ContextVars` to switch drivers globally across a request without passing state objects.

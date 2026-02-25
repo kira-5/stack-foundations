@@ -1,5 +1,7 @@
 import functools
 import re
+import asyncio
+import time
 from typing import AsyncGenerator, Literal, Optional, Union
 
 try:
@@ -16,6 +18,115 @@ from src.shared.db.drivers import DatabaseDriverManager
 from src.shared.services.logging_service import LoggingService
 
 logger = LoggingService.get_logger(name="async_query_executor")
+
+
+class PerformanceWatchdog:
+    """Zero-Block Background Auditor for tracking slow queries."""
+
+    # Simple debounce cache to prevent spamming EXPLAIN on the same query
+    _explained_cache: dict[str, float] = {}
+    _DEBOUNCE_SECONDS = 300  # 5 minutes
+
+    @classmethod
+    def audit_query(
+        cls,
+        query_name: str,
+        query: str,
+        params: any,
+        duration: float,
+        threshold_seconds: float = 2.0,
+    ) -> None:
+        if duration <= threshold_seconds:
+            return
+
+        query_hash = hash(query_name + query)
+        current_time = time.time()
+
+        if query_hash in cls._explained_cache:
+            if current_time - cls._explained_cache[query_hash] < cls._DEBOUNCE_SECONDS:
+                return
+
+        cls._explained_cache[query_hash] = current_time
+
+        # Fire and forget safely depending on sync vs async context
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(
+                cls._run_auto_explain(query_name, query, params, duration)
+            )
+        except RuntimeError:
+            # We are in a purely synchronous thread (no event loop)
+            import threading
+            threading.Thread(
+                target=lambda: asyncio.run(cls._run_auto_explain(query_name, query, params, duration)),
+                daemon=True
+            ).start()
+
+    @staticmethod
+    async def _run_auto_explain(query_name: str, query: str, params: any, duration: float) -> None:
+        await asyncio.sleep(0.5)
+        try:
+            from src.shared.db.connections import PostgresConnection
+            
+            async with PostgresConnection.get_connection() as conn:
+                check_sql = """
+                SELECT 1 FROM base_pricing.bp_audit_slow_queries 
+                WHERE query_name = $1 AND DATE(created_at) = CURRENT_DATE
+                """
+                
+                insert_sql = """
+                INSERT INTO base_pricing.bp_audit_slow_queries (query_name, raw_sql, execution_time_ms, explain_plan)
+                VALUES ($1, $2, $3, $4)
+                """
+                
+                if PostgresConnection.database_driver == "asyncpg":
+                    
+                    already_logged = await conn.fetchval(check_sql, query_name)
+                    if already_logged:
+                        return
+                    
+                    # SECURITY: Only use EXPLAIN ANALYZE for reads to avoid double execution of writes
+                    # Even if an INSERT contains a SELECT, the presence of 'insert' flags it as a write.
+                    query_lower = query.strip().lower()
+                    query_clean = re.sub(r"--.*$", "", query_lower, flags=re.MULTILINE)
+                    query_clean = re.sub(r"/\*.*?\*/", "", query_clean, flags=re.DOTALL)
+                    
+                    write_keywords = ["insert", "update", "delete", "create", "drop", "alter", "truncate", "merge"]
+                    is_write = any(re.search(rf"\b{kw}\b", query_clean) for kw in write_keywords)
+                    
+                    if is_write:
+                        explain_query = f"EXPLAIN {query}"
+                    else:
+                        explain_query = f"EXPLAIN (ANALYZE, BUFFERS) {query}"
+                    
+                    if isinstance(params, dict):
+                        keys = list(params.keys())
+                        sorted_keys = sorted(keys, key=len, reverse=True)
+                        for i, key in enumerate(sorted_keys):
+                            explain_query = explain_query.replace(f":{key}", f"${i + 1}")
+                        values = [params[key] for key in sorted_keys]
+                        plan_rows = await conn.fetch(explain_query, *values)
+                    elif isinstance(params, (list, tuple)):
+                        plan_rows = await conn.fetch(explain_query, *params)
+                    else:
+                        plan_rows = await conn.fetch(explain_query)
+                        
+                    explain_plan = "\n".join(row[0] for row in plan_rows)
+                    
+                    await conn.execute(insert_sql, query_name, query, duration * 1000, explain_plan)
+                    
+                    logger.critical(
+                        f"\n{'='*50}\n"
+                        f"🚨 WATCHDOG ALERT: SLOW QUERY DETECTED ({duration:.2f}s) 🚨\n"
+                        f"Query Name: {query_name}\n"
+                        f"Plan:\n{explain_plan}\n"
+                        f"{'='*50}"
+                    )
+                elif PostgresConnection.database_driver == "sqlalchemy":
+                    logger.critical(f"Slow query detected: {query_name} took {duration:.2f}s")
+                
+        except Exception as e:
+            logger.error(f"Watchdog failed to explain slow query: {e}")
 
 
 def handle_streaming_lifetime(func):
@@ -53,18 +164,23 @@ class AsyncQueryExecutor:
 
     @staticmethod
     def _detect_query_type(query: str) -> Literal["read", "write"]:
-        """Detect if query is a read (SELECT) or write (INSERT, UPDATE, DELETE) operation."""
+        """Detect if query is a read (SELECT) or write (INSERT, UPDATE, DELETE) operation.
+        Err on the side of caution: if ANY write keyword is present, treat as write.
+        """
         query_lower = query.strip().lower()
         query_clean = re.sub(r"--.*$", "", query_lower, flags=re.MULTILINE)
         query_clean = re.sub(r"/\*.*?\*/", "", query_clean, flags=re.DOTALL)
 
-        write_patterns = [
-            r"^\s*(insert|update|delete|create|drop|alter|truncate)",
-        ]
-
-        for pattern in write_patterns:
-            if re.search(pattern, query_clean):
+        # SAFETY FIRST: If the query contains ANY write keywords as isolated words, 
+        # we treat it as a write. This easily catches:
+        # - "INSERT INTO ... SELECT ..."
+        # - "WITH cte AS (SELECT ...) UPDATE ..."
+        write_keywords = ["insert", "update", "delete", "create", "drop", "alter", "truncate", "merge"]
+        
+        for kw in write_keywords:
+            if re.search(rf"\b{kw}\b", query_clean):
                 return "write"
+                
         return "read"
 
     def _auto_select_fetch_strategy(
@@ -211,14 +327,22 @@ class AsyncQueryExecutor:
         strategy = fetch_strategy or "all"
         logger.info(f"Executing query with strategy: {strategy}")
 
-        if strategy == "all":
-            return await self._fetch_all(query, driver, session, params)
-        elif strategy == "batch":
-            return self._fetch_batch(query, driver, session, params, batch_size)
-        elif strategy == "stream":
-            return self._fetch_stream(query, driver, session, params, batch_size)
+        start_time = time.perf_counter()
+        query_source = kwargs.get("query_source", kwargs.get("query_name", "unknown"))
 
-        return await self._fetch_all(query, driver, session, params)
+        try:
+            if strategy == "all":
+                return await self._fetch_all(query, driver, session, params)
+            elif strategy == "batch":
+                return self._fetch_batch(query, driver, session, params, batch_size)
+            elif strategy == "stream":
+                return self._fetch_stream(query, driver, session, params, batch_size)
+
+            return await self._fetch_all(query, driver, session, params)
+        finally:
+            if strategy == "all":
+                duration = time.perf_counter() - start_time
+                PerformanceWatchdog.audit_query(query_source, query, params, duration)
 
     async def _stream_with_context(self, func, *args, **kwargs):
         """Internal helper to keep session alive during async iteration."""
@@ -246,6 +370,7 @@ class AsyncQueryExecutor:
         batch_size: int = 1000,
         auto_select_strategy: bool = True,
         session: any = None,  # Provided by @handle_streaming_lifetime
+        query_source: str = "unknown",
     ):
         """Unified entry point for database queries. Correctly handles pooling & session lifetime."""
         if db_type == "postgres":
@@ -256,6 +381,7 @@ class AsyncQueryExecutor:
                 session=session,
                 fetch_strategy=fetch_strategy,
                 batch_size=batch_size,
+                query_source=query_source,
             )
         elif db_type == "bigquery":
             return await self.async_execute_bq_query(query)

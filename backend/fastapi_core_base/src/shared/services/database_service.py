@@ -101,19 +101,20 @@ class DatabaseService:
         batch_size: int = 1000,
         auto_select_strategy: bool = True,
     ):
+        # Auto-detect query source if not provided, needed for both Logging and Watchdog
+        if query_source is None:
+            caller_name = get_caller_function_name()
+            if caller_name != "unknown":
+                query_source = caller_name
+            else:
+                query_source = extract_query_source_from_sql(query)
+
         query_logging_enabled = env_config_manager.environment_settings.get(
             "QUERY_LOGGING_ENABLED",
             False,
         )
 
         if query_logging_enabled:
-            # Auto-detect query source if not provided
-            if query_source is None:
-                caller_name = get_caller_function_name()
-                if caller_name != "unknown":
-                    query_source = caller_name
-                else:
-                    query_source = extract_query_source_from_sql(query)
 
             query_log_format = env_config_manager.environment_settings.get(
                 "QUERY_LOG_FORMAT",
@@ -148,6 +149,7 @@ class DatabaseService:
             fetch_strategy=fetch_strategy,
             batch_size=batch_size,
             auto_select_strategy=auto_select_strategy,
+            query_source=query_source,
         )
 
         return result
@@ -155,12 +157,17 @@ class DatabaseService:
     def execute_analytical_query(
         self,
         query: str,
+        query_source: str | None = None,
     ) -> pl.DataFrame:
         """
         Execute a high-performance analytical query returning a Polars DataFrame.
         Uses ADBC to bypass Python object overhead.
         """
-        return self.bulk_executor.execute_analytical_query(query=query)
+        if query_source is None:
+            caller_name = get_caller_function_name()
+            query_source = caller_name if caller_name != "unknown" else extract_query_source_from_sql(query)
+            
+        return self.bulk_executor.execute_analytical_query(query=query, query_source=query_source)
 
     async def execute_batch_query(
         self,
