@@ -12,15 +12,24 @@ dependencies = [
     "uvloop; sys_platform != 'win32'",
     "python-multipart",
     "slowapi",
+    "firebase-admin",
 ]
 
 [dependency-groups]
 
-# 1. LINTING, FORMATTING & QUALITY ASSURANCE
-qa = ["ruff", "mypy", "pytest", "pytest-cov", "pre-commit"]
+qa = [
+    "ruff",
+    "mypy",
+    "pytest",
+    "pytest-cov",
+    "deptry",
+    "detect-secrets",
+    "types-pytz",
+    "pre-commit",
+]
 
 # 2. ENVIRONMENT & CONFIGURATION MANAGEMENT
-config = ["python-dotenv", "dynaconf"]
+config = ["python-dotenv", "dynaconf", "toml"]
 
 # 4. DATA VALIDATION & SERIALIZATION
 validation = ["pydantic", "pydantic-settings", "orjson"]
@@ -60,13 +69,14 @@ data = [
 observability = ["ddtrace"]
 
 # 11. TASK QUEUES, REDIS & CACHING
-cache = ["redis", "rq", "fastapi-cache2[redis]"]
+cache = ["redis", "rq", "fastapi-cache2[redis]", "async-lru"]
 
 # 12. PROJECT UTILITIES
 utils = ["pip-tools", "uv", "fastapi-pagination"]
 
 
 [tool.ruff]
+# 1. LINTING, FORMATTING & QUALITY ASSURANCE
 # Target version for the latest Python features
 target-version = "py312"
 line-length = 88

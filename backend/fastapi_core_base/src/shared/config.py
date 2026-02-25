@@ -14,6 +14,7 @@ settings = Dynaconf(
         os.path.join(CONFIG_DIR, "settings.toml"),
         os.path.join(CONFIG_DIR, "logging.toml"),
         os.path.join(CONFIG_DIR, "datadog.toml"),
+        os.path.join(CONFIG_DIR, "cors.toml"),
         os.path.join(CONFIG_DIR, ".secrets.toml"),
     ],
     # Add support for client-specific configuration in the toml_config/clients folder

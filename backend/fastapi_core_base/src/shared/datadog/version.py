@@ -10,9 +10,9 @@ from app.configuration.config import EnvConfigManager
 def _get_logger():
     """Get logger lazily (only when needed, after LoggerFactory is initialized)."""
     try:
-        from app.services.logger import LoggerService
+        from app.services.logger import LoggingService
 
-        return LoggerService.get_logger(__name__)
+        return LoggingService.get_logger(__name__)
     except Exception:
         # Fallback to print if logger not available yet
         import logging

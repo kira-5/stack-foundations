@@ -59,3 +59,7 @@ class LoggingService:
             instance._loggers[name] = logger
 
         return instance._loggers[name]
+
+
+# Alias for backward compatibility or different naming preferences
+LoggerService = LoggingService

@@ -1,0 +1,9 @@
+[default]
+CORS_ORIGINS = [
+    "http://localhost:8000",
+    "https://generic-base-pricing.devs.impactsmartsuite.com",
+    # ... Add all your URLs here
+]
+
+[prod]
+CORS_ORIGINS = ["https://generic-base-pricing.impactsmartsuite.com"]

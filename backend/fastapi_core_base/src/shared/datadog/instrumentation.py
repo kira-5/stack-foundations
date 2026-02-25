@@ -77,7 +77,7 @@ Configuration:
 
 import os
 
-from app.configuration.config import EnvConfigManager
+from src.shared.configuration.config import EnvConfigManager
 
 from .constants import (
     CONFIG_KEY_AIOHTTP_ENABLED,
