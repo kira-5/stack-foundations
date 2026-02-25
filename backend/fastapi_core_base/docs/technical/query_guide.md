@@ -2,14 +2,63 @@
 
 This guide explains the four supported ways to execute queries using the `database_service`.
 
+
 ### 🏁 Driver Usage Summary
 
 | Method | Underlying Driver | Purpose |
 | :--- | :--- | :--- |
-| **[execute_transactional_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/async_query_executor.py#238-263)** | [asyncpg](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/connections.py#72-88) or `SQLAlchemy` | Standard API / CRUD |
-| **[execute_analytical_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/bulk_query_executor.py#8-31)** | **ADBC** (via Polars) | Fast **READ** (Massive data) |
-| **[execute_batch_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/async_query_executor.py#264-289)** | [asyncpg](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/connections.py#72-88) | Fast **WRITE** (1k - 10k rows) |
-| **[execute_bulk_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/services/database_service.py#180-196)** | [asyncpg](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/connections.py#72-88) | Ultra-Fast **WRITE** (100k+ rows) |
+| **[execute_transactional_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/async_query_executor.py#238-264)** | [asyncpg](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/connections.py#72-88) or `SQLAlchemy` | Standard API / CRUD |
+| **[execute_analytical_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/services/database_service.py#155-164)** | **ADBC** (via Polars) | Fast **READ** (Massive data) |
+| **[execute_batch_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/services/database_service.py#165-180)** | [asyncpg](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/connections.py#72-88) | Fast **WRITE** (1k - 10k rows) |
+| **[execute_bulk_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/async_query_executor.py#291-317)** | [asyncpg](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/connections.py#72-88) | Ultra-Fast **WRITE** (100k+ rows) |
+
+---
+
+### 🏗️ Master Feature Inventory (Consolidated)
+
+1. **🔀 Multi-Driver Engine Hub**
+*   **Native Postgres (asyncpg)**: Used for raw speed and direct binary protocol access.
+*   **ORM Ready (SQLAlchemy)**: Provides structured data modelling and relationship management.
+*   **Cloud Analytics (BigQuery)**: Integrated client for Google Cloud BigQuery operations.
+*   **Extreme Exports (ADBC)**: Uses Arrow Database Connectivity for pulling millions of rows at C-speed directly into Polars.
+
+2. **🛣️ The "Four Lane" Execution API**
+*   **Transactional Lane**: Standard API/CRUD work returning Python `list[dict]`.
+*   **Analytical Lane**: High-performance reads returning Polars `DataFrames`.
+*   **Batch Lane**: High-speed SQL batching (1k–10k rows) using `executemany`.
+*   **Bulk Lane**: Ultra-fast binary ingestion (100k+ rows) via the native **POSTGRES COPY** protocol.
+
+3. **🌊 Connection Pooling & Hygiene**
+*   **Dual-Driver Pooling**: Independent pools for [asyncpg](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/connections.py#72-88) (min 5, max 20) and `SQLAlchemy` (10 + 5 overflow).
+*   **Pre-Flight Health**: `pool_pre_ping=True` ensures dropped connections are detected before they reach the application.
+*   **Elastic Lifecycle**: Automated pruning of connections older than 300s to save database memory.
+*   **Clean Exit**: `asyncio.gather` driven parallel shutdown of all pools during app termination.
+
+4. **⏳ Professional Session Management**
+*   **The Streaming Guard**: `@handle_streaming_lifetime` decorator ensures the DB connection stays open for the entire duration of an `async for` generator.
+*   **Lifecycle Isolation**: [_stream_with_context](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/async_query_executor.py#223-230) provides an isolated session scope that self-destructs only after data is fully consumed.
+*   **Atomic Transactions**: Automatic transaction wrapping with `commit` / `rollback` logic baked into the connection manager.
+
+5. **🧠 System Intelligence & Safety**
+*   **Memory-Adaptive Strategy**: Automatically switches between [fetch_all](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/async_query_executor.py#120-151), [batch](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/async_query_executor.py#180-197), and [stream](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/async_query_executor.py#152-179) based on available system RAM (via `psutil`).
+*   **Auto-Timeout Guard**: Dynamically sets `statement_timeout` (30s Read / 10m Write) and `lock_timeout` (10s) per query.
+*   **Query Classifier**: Regex-based heuristic to detect if a query is a "Read" or "Write" to apply safety settings.
+*   **Param Translation**: Automatic runtime translation of standard `:named_params` to native Postgres `$1` syntax.
+
+6. **🛠️ Productivity & Architecture**
+*   **Contextual Driving**: Uses `ContextVars` to switch drivers globally across a request without passing state objects.
+*   **ORM Mixins**: [TimestampMixin](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/mixin.py#7-17) for automated [created_at](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/mixin.py#10-13) / [updated_at](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/mixin.py#14-17) column management.
+*   **Global Constants**: Centralized [constants.py](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/constants.py) mapping all Schemas, Tables, Materialized Views, and Stored Procedures for type-safe SQL construction.
+
+---
+
+### 🛠️ Pool Health Monitoring
+You can monitor the state of your database connection pools (active connections, idle connections, etc.) in real-time.
+
+```python
+status = await database_service.get_pool_status()
+print(status["asyncpg"])  # {'active': True, 'size': 10, 'free': 8, ...}
+```
 
 ---
 
@@ -181,7 +230,7 @@ def export_data():
 
 For saving data into the database, we provide two "Fast Lanes" depending on your data volume.
 
-### Lane A: [execute_batch_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/async_query_executor.py#264-289) (1,000 - 10,000 rows)
+### Lane A: [execute_batch_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/services/database_service.py#165-180) (1,000 - 10,000 rows)
 Uses `executemany` to send data as a single stream. Much faster than a loop. Supports `ON CONFLICT`.
 
 ```python
@@ -196,7 +245,7 @@ data = [
 await database_service.execute_batch_query(query, data)
 ```
 
-### Lane B: [execute_bulk_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/services/database_service.py#180-196) (100,000+ rows)
+### Lane B: [execute_bulk_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/async_query_executor.py#291-317) (100,000+ rows)
 The **Fastest possible way** to load data. Uses the binary COPY protocol.
 
 ```python
@@ -215,9 +264,9 @@ await database_service.execute_bulk_query(
 
 | Volume | Method | Speed | Flexibility |
 | :--- | :--- | :---: | :--- |
-| **1 - 100 rows** | [execute_transactional_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/async_query_executor.py#238-263) | 🟢 Good | Full SQL (Named Params) |
-| **1k - 10k rows** | [execute_batch_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/async_query_executor.py#264-289) | 🟡 Very Fast | Standard SQL ($1, $2) |
-| **100k+ rows** | [execute_bulk_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/services/database_service.py#180-196) | 🔴 Ultra Fast | Binary (Table direct) |
+| **1 - 100 rows** | [execute_transactional_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/async_query_executor.py#238-264) | 🟢 Good | Full SQL (Named Params) |
+| **1k - 10k rows** | [execute_batch_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/services/database_service.py#165-180) | 🟡 Very Fast | Standard SQL ($1, $2) |
+| **100k+ rows** | [execute_bulk_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/async_query_executor.py#291-317) | 🔴 Ultra Fast | Binary (Table direct) |
 
 > [!IMPORTANT]
-> Use **[execute_bulk_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/services/database_service.py#180-196)** for massive imports. It is roughly **100x faster** than standard per-row inserts.
+> Use **[execute_bulk_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/async_query_executor.py#291-317)** for massive imports. It is roughly **100x faster** than standard per-row inserts.
