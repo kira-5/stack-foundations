@@ -73,7 +73,7 @@ observability = ["ddtrace"]
 cache = ["redis", "rq", "fastapi-cache2[redis]", "async-lru"]
 
 # 12. PROJECT UTILITIES
-utils = ["pip-tools", "uv", "fastapi-pagination"]
+utils = ["pip-tools", "uv", "fastapi-pagination", "psutil"]
 
 
 [tool.ruff]

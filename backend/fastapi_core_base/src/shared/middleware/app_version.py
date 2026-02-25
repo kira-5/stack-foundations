@@ -10,7 +10,7 @@ from src.shared.configuration import response
 @alru_cache(ttl=60)
 async def get_app_version():
     # query = um_queries.APP_VERSION_QUERY
-    # data = await database_service.execute_async_query(query)
+    # data = await database_service.execute_transactional_query(query)
     # return data[0]["remarks"]
     return "1.0.0"
 

@@ -20,7 +20,7 @@ class UserService:
             AND is_active = TRUE
         """
         try:
-            res = await database_service.execute_async_query(query=query)
+            res = await database_service.execute_transactional_query(query=query)
             if res and isinstance(res, list) and len(res) > 0:
                 return {"email": res[0].get("email")}
             return None

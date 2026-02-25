@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import asynccontextmanager
+from typing import Optional
 
 import asyncpg
 from google.cloud import bigquery
@@ -39,9 +40,10 @@ class PostgresConnection:
     """Common database connection manager for asyncpg, aiopg, and SQLAlchemy."""
 
     # Internal clients and pools
-    _asyncpg_client = None
-    _sqlalchemy_engine = None
-    AsyncSessionLocal = None
+    database_driver: Optional[str] = None
+    _asyncpg_pool: Optional[asyncpg.Pool] = None
+    _sqlalchemy_engine: Optional[any] = None
+    AsyncSessionLocal: Optional[async_sessionmaker] = None
 
     @classmethod
     def init_connection_strings(cls, database_driver):
@@ -68,18 +70,21 @@ class PostgresConnection:
         cls.init_connection_strings(database_driver)
 
     @classmethod
-    async def get_asyncpg_connection(cls):
-        """Retrieve or create an asyncpg connection."""
-        if cls._asyncpg_client is None or cls._asyncpg_client.is_closed():
+    async def get_asyncpg_pool(cls):
+        """Retrieve or create an asyncpg connection pool."""
+        if cls._asyncpg_pool is None:
             try:
-                cls._asyncpg_client = await asyncpg.connect(cls.connection_url_asyncpg)
-            except asyncpg.PostgresError as e:
-                print(f"Error connecting to PostgreSQL with asyncpg: {str(e)}")
-                raise
+                cls._asyncpg_pool = await asyncpg.create_pool(
+                    cls.connection_url_asyncpg,
+                    min_size=5,
+                    max_size=20,
+                    max_inactive_connection_lifetime=300,
+                )
+                print("Postgres asyncpg pool created.")
             except Exception as e:
-                print(f"Error connecting to PostgreSQL with asyncpg: {str(e)}")
+                print(f"Error creating asyncpg pool: {str(e)}")
                 raise
-        return cls._asyncpg_client
+        return cls._asyncpg_pool
 
     @classmethod
     async def get_sqlalchemy_engine(cls):
@@ -93,23 +98,36 @@ class PostgresConnection:
                     max_overflow=5,
                     pool_pre_ping=True,
                 )
+                print("Postgres SQLAlchemy engine created.")
             except Exception as e:
                 print(f"Error creating SQLAlchemy engine: {str(e)}")
                 raise
         return cls._sqlalchemy_engine
 
     @classmethod
+    def get_adbc_connection_url(cls) -> str:
+        """Returns the connection URL for ADBC (standard postgres scheme)."""
+        return (
+            f"postgresql://{env_config_manager.environment_settings.DB_USER}:"
+            f"{env_config_manager.environment_settings.DB_PASSWORD}@"
+            f"{env_config_manager.environment_settings.DB_HOST}:"
+            f"{env_config_manager.environment_settings.DB_PORT}/"
+            f"{env_config_manager.environment_settings.DB_NAME}"
+        )
+
+    @classmethod
     @asynccontextmanager
     async def get_connection(cls):
         """Get a connection based on the selected database type."""
         if cls.database_driver == "asyncpg":
-            conn = await cls.get_asyncpg_connection()
-            async with conn.transaction():
-                try:
-                    yield conn
-                except Exception as e:
-                    print(f"Error during database operation with asyncpg: {str(e)}")
-                    raise
+            pool = await cls.get_asyncpg_pool()
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    try:
+                        yield conn
+                    except Exception as e:
+                        print(f"Error during database operation with asyncpg: {str(e)}")
+                        raise
         elif cls.database_driver == "sqlalchemy":
             engine = await cls.get_sqlalchemy_engine()
             if cls.AsyncSessionLocal is None:
@@ -132,18 +150,46 @@ class PostgresConnection:
             raise ValueError("Unsupported database type specified.")
 
     @classmethod
+    async def get_pool_status(cls) -> dict:
+        """Returns the current status of the database connection pools."""
+        status = {
+            "asyncpg": {"active": False, "size": 0, "free": 0},
+            "sqlalchemy": {"active": False},
+        }
+
+        if cls._asyncpg_pool:
+            status["asyncpg"] = {
+                "active": True,
+                "size": cls._asyncpg_pool.get_size(),
+                "free": cls._asyncpg_pool.get_idle_size(),
+                "min_size": cls._asyncpg_pool.get_min_size(),
+                "max_size": cls._asyncpg_pool.get_max_size(),
+            }
+
+        if cls._sqlalchemy_engine:
+            status["sqlalchemy"] = {
+                "active": True,
+                "pool_size": cls._sqlalchemy_engine.pool.size(),
+                "checked_out": cls._sqlalchemy_engine.pool.checkedout(),
+                "overflow": cls._sqlalchemy_engine.pool.overflow(),
+            }
+
+        return status
+
+    @classmethod
     async def close(cls):
         """Close all database connections."""
         tasks = []
-        if cls._asyncpg_client is not None:
-            tasks.append(cls._asyncpg_client.close())
-            cls._asyncpg_client = None
-            print("Postgres asyncpg connection closed.")
+        if cls._asyncpg_pool is not None:
+            tasks.append(cls._asyncpg_pool.close())
+            cls._asyncpg_pool = None
+            print("Postgres asyncpg pool closed.")
 
         if cls._sqlalchemy_engine is not None:
             tasks.append(cls._sqlalchemy_engine.dispose())
             cls._sqlalchemy_engine = None
             print("Postgres SQLAlchemy engine closed.")
 
-        await asyncio.gather(*tasks)  # Wait for all closing tasks
-        print("All database connections closed.")
+        if tasks:
+            await asyncio.gather(*tasks)  # Wait for all closing tasks
+            print("All database connections closed.")

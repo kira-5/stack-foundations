@@ -1,9 +1,13 @@
 import inspect
 import re
+from typing import Literal
 
 from src.shared.configuration.config import env_config_manager
+from src.shared.db.connections import PostgresConnection
 from src.shared.db.async_query_executor import AsyncQueryExecutor
+from src.shared.db.bulk_query_executor import BulkQueryExecutor
 from src.shared.services.logging_service import LoggingService
+import polars as pl
 
 logger = LoggingService.get_logger(name="database_service")
 
@@ -85,16 +89,17 @@ def extract_query_source_from_sql(query: str) -> str:
 class DatabaseService:
     def __init__(self):
         self.executor = AsyncQueryExecutor()
+        self.bulk_executor = BulkQueryExecutor()
 
-    async def execute_async_query(
+    async def execute_transactional_query(
         self,
         query: str,
-        is_caching_enabled: bool = False,
-        cache_key: str = "",
+        params: dict | list | None = None,
         db_type: str = "postgres",
-        is_cache_query: bool = False,
         query_source: str | None = None,
-        session_user_id: int | str | None = "",
+        fetch_strategy: Literal["all", "batch", "stream"] | None = None,
+        batch_size: int = 1000,
+        auto_select_strategy: bool = True,
     ):
         query_logging_enabled = env_config_manager.environment_settings.get(
             "QUERY_LOGGING_ENABLED",
@@ -103,27 +108,23 @@ class DatabaseService:
 
         if query_logging_enabled:
             # Auto-detect query source if not provided
-            # Performance: Only do expensive caller detection if query_source not provided
             if query_source is None:
                 caller_name = get_caller_function_name()
                 if caller_name != "unknown":
                     query_source = caller_name
                 else:
-                    # Fallback to SQL parsing (lighter than stack inspection)
                     query_source = extract_query_source_from_sql(query)
 
-            # Get log format from settings (defaults to "compact" if not set)
             query_log_format = env_config_manager.environment_settings.get(
                 "QUERY_LOG_FORMAT",
                 "compact",
             ).lower()
 
-            # Different log formats based on QUERY_LOG_FORMAT setting
             if query_log_format == "detailed":
-                # Detailed format with separators (human-readable)
                 query_log_message = (
                     f"{_QUERY_LOG_SEPARATOR}\n"
                     f"Query Source: {query_source}\n"
+                    f"Params: {params}\n"
                     f"Cache: false | Executing from database\n"
                     f"{_QUERY_LOG_SEPARATOR}\n"
                     f"\n"
@@ -132,27 +133,71 @@ class DatabaseService:
                     f"{_QUERY_LOG_SEPARATOR}"
                 )
             else:
-                # Compact format (minimal overhead, still readable)
-                query_log_message = f"Query: {query_source} | Cache: false | Source: database\n" f"{query}"
+                query_log_message = (
+                    f"Query: {query_source} | Params: {params} | "
+                    f"Cache: false | Source: database\n{query}"
+                )
 
-            # Single log entry - all query info in one [POSTGRES] - INFO: line
             logger.info(query_log_message)
 
-            result = await self.executor.async_execute_query(
-                query,
-                db_type,
-            )
-
-            return result
-
-        # If not cached, execute the query
-        result = await self.executor.async_execute_query(
+        # Execute the query with params and strategy
+        result = await self.executor.execute_transactional_query(
             query,
-            db_type,
-            session_user_id=session_user_id,
+            params=params,
+            db_type=db_type,
+            fetch_strategy=fetch_strategy,
+            batch_size=batch_size,
+            auto_select_strategy=auto_select_strategy,
         )
 
         return result
+
+    def execute_analytical_query(
+        self,
+        query: str,
+    ) -> pl.DataFrame:
+        """
+        Execute a high-performance analytical query returning a Polars DataFrame.
+        Uses ADBC to bypass Python object overhead.
+        """
+        return self.bulk_executor.execute_analytical_query(query=query)
+
+    async def execute_batch_query(
+        self,
+        query: str,
+        data: list[tuple] | list[list],
+        query_source: str | None = None,
+    ) -> str:
+        """
+        High-speed batch insert/update using executemany.
+        Best for 1,000 - 10,000 rows.
+        """
+        if query_source is None:
+            query_source = get_caller_function_name()
+        
+        logger.info(f"Batch Query: {query_source} | Rows: {len(data)}")
+        return await self.executor.execute_batch_query(query, data)
+
+    async def execute_bulk_query(
+        self,
+        table_name: str,
+        columns: list[str],
+        data: list[tuple],
+        query_source: str | None = None,
+    ) -> str:
+        """
+        Ultra-fast binary COPY protocol.
+        Best for 100,000+ rows.
+        """
+        if query_source is None:
+            query_source = get_caller_function_name()
+            
+        logger.info(f"Bulk Query: {query_source} | Table: {table_name} | Rows: {len(data)}")
+        return await self.executor.execute_bulk_query(table_name, columns, data)
+
+    async def get_pool_status(self) -> dict:
+        """Get the health status of database pools."""
+        return await PostgresConnection.get_pool_status()
 
 
 # Create a single instance of DatabaseService

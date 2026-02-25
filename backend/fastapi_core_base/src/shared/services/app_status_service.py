@@ -38,7 +38,7 @@ class AppStatusService:
             WHERE flag_name = '{flag_name}'
             AND is_active = TRUE
         """
-        await database_service.execute_async_query(
+        await database_service.execute_transactional_query(
             query=query,
         )
 
@@ -65,7 +65,7 @@ class AppStatusService:
             WHERE flag_name = '{flag_name}'
             AND is_active = TRUE
         """
-        res = await database_service.execute_async_query(
+        res = await database_service.execute_transactional_query(
             query=query,
         )
 

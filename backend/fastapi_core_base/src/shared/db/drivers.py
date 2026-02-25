@@ -8,6 +8,7 @@ class DatabaseDrivers:
 
     ASYNC_PG: str = "asyncpg"
     SQL_ALCHEMY: str = "sqlalchemy"
+    ADBC: str = "adbc"
 
 
 class DatabaseDriverManager:
