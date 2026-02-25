@@ -3,7 +3,6 @@ import re
 
 from src.shared.configuration.config import env_config_manager
 from src.shared.db.async_query_executor import AsyncQueryExecutor
-from src.shared.db.drivers import DatabaseDrivers
 from src.shared.services.logging_service import LoggingService
 
 logger = LoggingService.get_logger(name="database_service")
@@ -142,7 +141,6 @@ class DatabaseService:
             result = await self.executor.async_execute_query(
                 query,
                 db_type,
-                driver=DatabaseDrivers.AIO_PG,
             )
 
             return result
@@ -151,7 +149,6 @@ class DatabaseService:
         result = await self.executor.async_execute_query(
             query,
             db_type,
-            driver=DatabaseDrivers.AIO_PG,
             session_user_id=session_user_id,
         )
 
