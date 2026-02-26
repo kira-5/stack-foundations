@@ -379,28 +379,38 @@ def list_users(db: Session = Depends(get_db)): # Dependency is injected
 
 ---
 
-## 13. The Circuit Breaker Pattern ("The Fuse Box")
+## 14. The Local OLAP Pattern ("The Turbo Notebook")
 
-**1. What it is:** A stability pattern that detects failures in a remote service and prevents the application from making calls that are likely to fail, giving the remote service time to recover.
+**1. What it is:** An in-process analytical SQL engine (DuckDB) that queries high-performance columnar files (Parquet) directly. It provides the power of a data warehouse without the need for a database server.
 
-**2. When to use it:** Essential in microservices or when calling unstable 3rd party APIs. It prevents "cascading failures" where one slow service bogs down the entire system.
+**2. When to use it:** Use this when you need to perform complex aggregations, joins, or filters on large datasets (millions of rows) stored as files, and you want extreme speed without infrastructure overhead.
 
 **3. Best for / use case:**
-- **External APIs:** Calling a flaky shipping or weather API.
-- **Downstream Microservices:** Protecting the core app from a slow auth service.
-- **Database Resilience:** Stopping DB calls during a massive spike or migration.
+- **Analytical Dashboards:** Speeding up data visualization by querying Parquet files instead of a slow transactional DB.
+- **Data Sidecars:** Storing "heavy" logs or historical data in Parquet and using DuckDB to generate reports.
+- **Tooling:** Building local CLI tools that need to process CSV or Parquet files with SQL.
 
-**4. Example:** A home fuse box: When there is a sudden electrical surge, the fuse "trips" and cuts the circuit. This prevents the surge from reaching your expensive electronics.
+**4. Example:** A turbo-charged notebook: You have a compressed notebook (Parquet) that contains years of data. Instead of reading it page-by-page, you use a high-speed calculator (DuckDB) that can instantly find every mention of a value and sum them up in milliseconds.
 
 **5. Implementation Sample:**
 ```python
-import circuitbreaker
+import duckdb
 
-@circuitbreaker.circuit
-def call_external_api():
-    # If this fails N times, the circuit opens 
-    # and subsequent calls fail instantly without trying
-    return requests.get("https://flaky-api.com")
+# Connect to a file or stay in-memory
+conn = duckdb.connect("analytics.duckdb")
+
+# Query Parquet files directly using SQL
+# DuckDB treats the file path like a table
+query = """
+    SELECT category, SUM(amount) as total_spend
+    FROM 'data/transactions/*.parquet'
+    WHERE year = 2024
+    GROUP BY category
+    ORDER BY total_spend DESC
+    LIMIT 10
+"""
+
+results = conn.execute(query).df() # Returns a Pandas DataFrame
 ```
 
 ---
@@ -422,3 +432,4 @@ def call_external_api():
 | **Middleware** | Request Filter | `app.middleware()` | **Automatic:** Cross-cutting logic. | The Gatekeeper |
 | **DI** | Dependency Supply | `Depends(get_db)` | **Testable:** Decoupled components. | The Supplier |
 | **Circuit Breaker** | Resilience | `@circuit` | **Bulletproof:** Prevents cascading. | The Fuse Box |
+| **Local OLAP** | Analytical Engine | `duckdb.execute(sql)` | **High Perf:** Logic + Columnar Files. | The Turbo Notebook |
