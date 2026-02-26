@@ -1,10 +1,12 @@
 import time
+
 import polars as pl
-from src.shared.db.connections import PostgresConnection
-from src.shared.db.async_query_executor import PerformanceWatchdog
+
+from src.shared.db.engines.adbc import get_adbc_connection_url
+from src.shared.db.intelligence.watchdog import PerformanceWatchdog
 
 
-class BulkQueryExecutor:
+class AnalyticalExecutor:
     """Executor for high-performance analytical queries using ADBC and Polars."""
 
     def execute_analytical_query(
@@ -23,10 +25,10 @@ class BulkQueryExecutor:
         Returns:
             pl.DataFrame: The resulting data as a Polars DataFrame.
         """
-        connection_url = PostgresConnection.get_adbc_connection_url()
-        
+        connection_url = get_adbc_connection_url()
+
         start_time = time.perf_counter()
-        
+
         try:
             # pl.read_database uses ADBC under the hood when engine="adbc"
             # and the postgresql:// scheme is used.

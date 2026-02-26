@@ -7,8 +7,8 @@ import toml
 from dotenv import load_dotenv
 from dynaconf import Dynaconf
 
-from src.shared.configuration import constants as config_constants
 from src.shared.configuration import (
+    constants as config_constants,
     email_notification_secret_manager,
     gcp_secret_manager,
     mtp_secret_manager,
@@ -110,6 +110,7 @@ class EnvConfigManager:
         settings_files = (
             [
                 "settings.toml",
+                "databases.toml",
                 "logging.toml",
                 "datadog.toml",
             ]

@@ -22,7 +22,7 @@ async def get_hierarchical_access_data_models(user_id: int) -> list[dict]:
     logger.info(f"🔍 Fetching hierarchical access data for user_id: {user_id}")
 
     try:
-        result = await database_service.execute_async_query(
+        result = await database_service.execute_transactional_query(
             user_management_queries.HIERARCHICAL_ACCESS_QUERY.format(user_code=user_id),
         )
 
@@ -51,7 +51,7 @@ async def get_module_actions_data_models(user_id: int) -> list[dict]:
     logger.info(f"🔍 Fetching module actions data for user_id: {user_id}")
 
     try:
-        result = await database_service.execute_async_query(
+        result = await database_service.execute_transactional_query(
             user_management_queries.MODULE_ACTIONS_QUERY.format(user_code=user_id),
         )
 
@@ -79,7 +79,7 @@ async def sync_user_access_hierarchy_models(user_id: int) -> bool:
             user_code=user_id,
         )
 
-        await database_service.execute_async_query(query, session_user_id=None)
+        await database_service.execute_transactional_query(query)
         logger.info(f"✅ User access hierarchy synced for user_id: {user_id}")
         return True
 

@@ -1,6 +1,5 @@
 # app/db/models.py
 from sqlalchemy import Column, Integer, String
-
 from src.shared.db.base import Base
 
 

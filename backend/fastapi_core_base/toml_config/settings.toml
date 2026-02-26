@@ -47,15 +47,7 @@ EMAIL_NOTIFICATION_SECRET_NAME = "notification_email_credentials"
 
 
 # =============================================================================
-# 3. Redis Configuration
-# =============================================================================
-# Standard Redis defaults (can be overridden in client TOMLs or .secrets.toml).
-REDIS_DB = 0
-REDIS_MAX_CONNECTIONS = 20
-
-
-# =============================================================================
-# 4. Client & Tenant Notes
+# 3. Client & Tenant Notes
 # =============================================================================
 # Note: Client-specific settings (PROJECT_ID, TENANT_ID, etc.)
 # are loaded dynamically from client TOML files in backend/clients/.

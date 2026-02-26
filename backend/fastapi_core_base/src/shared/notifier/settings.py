@@ -61,7 +61,7 @@ async def get_notifier_setting_value(
     """
 
     try:
-        result = await database_service.execute_async_query(
+        result = await database_service.execute_transactional_query(
             query,
             db_type="postgres",
         )
@@ -118,7 +118,7 @@ async def get_notifier_category(process_key: str) -> str | None:
     """
 
     try:
-        result = await database_service.execute_async_query(
+        result = await database_service.execute_transactional_query(
             query,
             db_type="postgres",
         )

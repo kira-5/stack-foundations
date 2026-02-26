@@ -99,3 +99,36 @@ fastapi_core_base/              # Project Root (Git Root)
 ├── setup.py                    # Legacy compatibility (optional)
 ├── requirements.txt            # Master export (generated)
 └── README.md                   # Project overview
+
+
+
+
+src/shared/
+├── services/
+│   └── database_service.py        # The Orchestrator facade. Consolidates APIs for transactional, analytical, batch, and bulk queries.
+└── db/                            
+    ├── core/                      # Global Management & Safety Layer
+    │   ├── connection_manager.py  # Stores the Asyncpg Pool and SQLAlchemy Engines, handles connection lifecycle (init/close).
+    │   ├── session_guard.py       # Contains context wrappers and timeout guardians like `@handle_streaming_lifetime`.
+    │   └── driver_context.py      # Manages the ContextVars for dynamic global driver switching without passing objects.
+    ├── engines/                   # Driver-Specific Setup & Logic
+    │   ├── postgres.py            # Asyncpg connection builder and SQLAlchemy sessionmaker factories.
+    │   ├── bigquery.py            # BigQuery client configuration.
+    │   └── adbc.py                # ADBC driver URI builder for Polars connectivity.
+    ├── execution_lanes/           # The 4 Data Execution Paths
+    │   ├── __init__.py            # Internal exports for the lanes.
+    │   ├── transactional.py       # Standard CRUD operations returning `List[dict]`.
+    │   ├── analytical.py          # High-performance Polars DataFrame exports natively bypassing Python.
+    │   ├── batch.py               # `executemany` high-speed batching inserts/updates.
+    │   └── bulk.py                # Native Postgres `COPY` commands for ultra-fast large volume ingestion.
+    ├── intelligence/              # Analysis & Monitoring Systems
+    │   ├── query_analyzer.py      # Regex classifiers to detect READ/WRITE operations and real-time system RAM sensing.
+    │   └── watchdog.py            # Background Zero-Block monitor that logs `EXPLAIN ANALYZE` for slow queries.
+    ├── repositories/              # Repository Pattern Layer (For Future Abstractions)
+    │   ├── base.py                # A generic BaseRepository providing standard interface definitions.
+    │   └── interfaces.py          # Core interface protocols for business entities.
+    └── schema/                    # Metadata & Business Models
+        ├── constants.py           # Hardcoded schema namespaces, table names, and stored procedures.
+        ├── mixins.py              # Reusable SQLAlchemy mixins (e.g., TimestampMixin).
+        ├── base.py                # Declarative Base for all models.
+        └── models.py              # Core application ORM classes.

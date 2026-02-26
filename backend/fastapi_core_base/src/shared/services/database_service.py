@@ -2,14 +2,19 @@ import inspect
 import re
 from typing import Literal
 
-from src.shared.configuration.config import env_config_manager
-from src.shared.db.connections import PostgresConnection
-from src.shared.db.async_query_executor import AsyncQueryExecutor
-from src.shared.db.bulk_query_executor import BulkQueryExecutor
-from src.shared.services.logging_service import LoggingService
 import polars as pl
 
-logger = LoggingService.get_logger(name="database_service")
+from src.shared.configuration.config import env_config_manager
+from src.shared.db.core.connection_manager import PostgresConnection
+from src.shared.db.execution_lanes import (
+    AnalyticalExecutor,
+    BatchExecutor,
+    BulkExecutor,
+    TransactionalExecutor,
+)
+from src.shared.logging import get_logger
+
+logger = get_logger(name="database_service")
 
 
 # Cache separator string to avoid repeated string multiplication
@@ -17,7 +22,7 @@ _QUERY_LOG_SEPARATOR = "─" * 75
 
 
 def get_caller_function_name() -> str:
-    """Get the name of the function that called execute_async_query.
+    """Get the name of the function that called execute_*_query.
 
     Optimized to minimize stack traversal overhead by limiting frame
     access.
@@ -28,8 +33,8 @@ def get_caller_function_name() -> str:
     try:
         # Get the call stack (minimal traversal)
         # Frame 0: current function (get_caller_function_name)
-        # Frame 1: execute_async_query
-        # Frame 2: caller of execute_async_query (what we want)
+        # Frame 1: execute_transactional_query (or similar)
+        # Frame 2: caller of execute_transactional_query (what we want)
         frame = inspect.currentframe()
         if frame and frame.f_back and frame.f_back.f_back:
             caller_frame = frame.f_back.f_back
@@ -88,8 +93,10 @@ def extract_query_source_from_sql(query: str) -> str:
 
 class DatabaseService:
     def __init__(self):
-        self.executor = AsyncQueryExecutor()
-        self.bulk_executor = BulkQueryExecutor()
+        self.transactional_executor = TransactionalExecutor()
+        self.analytical_executor = AnalyticalExecutor()
+        self.batch_executor = BatchExecutor()
+        self.bulk_executor = BulkExecutor()
 
     async def execute_transactional_query(
         self,
@@ -142,7 +149,7 @@ class DatabaseService:
             logger.info(query_log_message)
 
         # Execute the query with params and strategy
-        result = await self.executor.execute_transactional_query(
+        result = await self.transactional_executor.execute_transactional_query(
             query,
             params=params,
             db_type=db_type,
@@ -166,8 +173,8 @@ class DatabaseService:
         if query_source is None:
             caller_name = get_caller_function_name()
             query_source = caller_name if caller_name != "unknown" else extract_query_source_from_sql(query)
-            
-        return self.bulk_executor.execute_analytical_query(query=query, query_source=query_source)
+
+        return self.analytical_executor.execute_analytical_query(query=query, query_source=query_source)
 
     async def execute_batch_query(
         self,
@@ -181,9 +188,9 @@ class DatabaseService:
         """
         if query_source is None:
             query_source = get_caller_function_name()
-        
+
         logger.info(f"Batch Query: {query_source} | Rows: {len(data)}")
-        return await self.executor.execute_batch_query(query, data)
+        return await self.batch_executor.execute_batch_query(query, data)
 
     async def execute_bulk_query(
         self,
@@ -198,9 +205,9 @@ class DatabaseService:
         """
         if query_source is None:
             query_source = get_caller_function_name()
-            
+
         logger.info(f"Bulk Query: {query_source} | Table: {table_name} | Rows: {len(data)}")
-        return await self.executor.execute_bulk_query(table_name, columns, data)
+        return await self.bulk_executor.execute_bulk_query(table_name, columns, data)
 
     async def get_pool_status(self) -> dict:
         """Get the health status of database pools."""

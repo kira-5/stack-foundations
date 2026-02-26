@@ -74,6 +74,9 @@ cache = ["redis", "rq", "fastapi-cache2[redis]", "async-lru"]
 
 # 12. PROJECT UTILITIES
 utils = ["pip-tools", "uv", "fastapi-pagination", "psutil"]
+dev = [
+    "pytest-asyncio>=1.3.0",
+]
 
 
 [tool.ruff]
@@ -90,7 +93,7 @@ line-length = 88
 # B = flake8-bugbear (common bugs)
 # UP = pyupgrade (modernizes syntax)
 select = ["E", "W", "F", "I", "B", "UP", "ASYNC"]
-ignore = ["E501"]                                 # Ignore line-length warnings (let the formatter handle it)
+ignore = ["E501", "PERF401"]                      # Ignore line-length warnings and PERF401
 
 [tool.ruff.lint.isort]
 # Ensures imports are sorted automatically
@@ -103,9 +106,6 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 
-[tool.ruff.lint.perfl]
-# Performance rules (e.g., avoiding list.append in loops)
-ignore = ["PERF401"]
 
 [tool.mypy]
 python_version = "3.12"

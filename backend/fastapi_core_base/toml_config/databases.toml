@@ -1,0 +1,45 @@
+###############################################################################
+# Database & Infrastructure Configuration
+#
+# This file contains configuration for databases (Postgres, BigQuery, Redis, etc.)
+###############################################################################
+
+[DEFAULT]
+
+# =============================================================================
+# Postgres Connection Pools
+# =============================================================================
+# These pool limits apply to every single container/instance independently.
+# asyncpg pool variables
+DB_POOL_MIN_SIZE = 1
+DB_POOL_MAX_SIZE = 5
+
+# SQLAlchemy pool variables
+DB_SA_POOL_SIZE = 2
+DB_SA_MAX_OVERFLOW = 3
+
+
+# =============================================================================
+# Postgres Execution Parameters
+# =============================================================================
+# Query execution safety limits
+DB_STMT_TIMEOUT_WRITE = "10min"
+DB_STMT_TIMEOUT_READ = "30s"
+DB_LCK_TIMEOUT = "10s"
+DB_BATCH_SIZE = 1000
+
+
+# =============================================================================
+# Database Watchdog Configuration
+# =============================================================================
+# Performance monitoring thresholds
+WATCHDOG_THRESHOLD_SECONDS = 2.0
+WATCHDOG_DEBOUNCE_SECONDS = 300
+
+
+# =============================================================================
+# Redis Configuration
+# =============================================================================
+# Standard Redis defaults (can be overridden in client TOMLs or .secrets.toml).
+REDIS_DB = 0
+REDIS_MAX_CONNECTIONS = 20

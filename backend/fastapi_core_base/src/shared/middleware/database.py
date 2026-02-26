@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import DatabaseError
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from src.shared.db.connections import PostgresConnection
+from src.shared.db.core.connection_manager import PostgresConnection
 from src.shared.db.drivers import DatabaseDriverManager, DatabaseDrivers
 
 
