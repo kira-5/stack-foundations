@@ -12,7 +12,6 @@
 Think of Parquet as "JSON/CSV on steroids" for analytical data. While CSVs are row-based (good for writing one line at a time), Parquet is columnar.
 
 ### Why it matters
-
 * **Columnar Storage (Column Pruning):** If you have a table with 100 columns but only need to calculate the average_price, Parquet allows the computer to skip the other 99 columns entirely.
 * **Compression:** Because data in a single column is usually the same type (e.g., all integers or all dates), it compresses incredibly well—often 80-90% smaller than a CSV.
 * **Binary & Typed:** It stores metadata (schema, types, and statistics like min/max). No more guessing if a column is a string or a datetime.
@@ -24,7 +23,6 @@ Think of Parquet as "JSON/CSV on steroids" for analytical data. While CSVs are r
 DuckDB is basically "SQLite for Analytics." While SQLite is optimized for high-speed row operations (OLTP), DuckDB is a vectorized engine optimized for massive aggregations and joins (OLAP).
 
 ### Why backend engineers love it
-
 * **Zero Infrastructure:** It’s just a Python library (`pip install duckdb`). There’s no server to manage, no Postgres container to spin up, and no credentials to leak.
 * **Direct Querying:** You don't have to "import" data. You can run SQL directly on top of a Parquet file on your disk or even an S3 bucket.
 * **The "Glue":** It speaks Python fluently. You can run SQL on a Pandas DataFrame, join it with a Parquet file, and output the result as a Polars DataFrame or a JSON file.
@@ -36,14 +34,12 @@ DuckDB is basically "SQLite for Analytics." While SQLite is optimized for high-s
 Whether you use a `.duckdb` file or many `.parquet` files depends on what you are trying to do.
 
 ### Use a .duckdb file when
-
 * **It is your "Main Database":** You want one file to hold all your tables, views, and custom macros.
 * **You need "Transactions":** You are writing data frequently and need to make sure that if the power goes out, your data isn't corrupted (DuckDB files are ACID compliant, Parquet files are not).
 * **Performance inside DuckDB:** DuckDB can read its own format slightly faster than Parquet because it stores internal metadata and indexes that Parquet doesn't have.
 * **Complexity:** You are joining many tables together and want to keep them all in one "container."
 
 ### Use .parquet files when
-
 * **Portability is King:** You want to send the data to a teammate who uses Pandas, Snowflake, or Spark. They can't open a `.duckdb` file, but they can open a `.parquet` file.
 * **The Data is "Cold":** You have millions of rows of historical logs that you will never change (Read-Only).
 * **Scale:** You have so much data that you want to store it in folders (e.g., `data/year=2024/month=01/`).
@@ -122,7 +118,6 @@ If you try to load a 20GB CSV into a Pandas DataFrame on a 16GB RAM laptop, your
 ## 9. Implementation Patterns (Python)
 
 ### A. Converting "Messy" Data to Parquet
-
 Instead of using slow Pandas loops, use DuckDB to "clean and cast" your data into a compressed Parquet file.
 
 ```python
@@ -141,7 +136,6 @@ duckdb.execute("""
 ```
 
 ### B. Querying via Python API
-
 You can use standard SQL syntax directly on the file path.
 
 ```python
