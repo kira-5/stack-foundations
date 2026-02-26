@@ -133,16 +133,20 @@ The system follows a strict "Set once, Override when needed" approach.
 
 ### A. Driver Flow & Initialization
 
-1.  **Global Foundation (Startup Event)**:
-    *   **Action**: `PostgresConnection.initialize(driver)` is called **once** during [startup_event.py](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/app/extensions/startup_event.py).
-    *   **Purpose**: Builds connection strings, sets the global default driver, and warms up the pool.
-2.  **Request Isolation (Middleware)**:
+The system uses an **"Anchor vs. Isolated"** pattern to balance performance and safety.
+
+1.  **Global Foundation (The Anchor)**:
+    *   **Location**: [startup_event.py](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/app/extensions/startup_event.py)
+    *   **Action**: `PostgresConnection.initialize(driver)` is called **exactly once** during the app startup event.
+    *   **Result**: It prepares the shared connection strings and sets the global `cls.database_driver` state. This "primes" the factory.
+2.  **Request Isolation (The Shield)**:
+    *   **Location**: [database.py](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/middleware/database.py) middleware
     *   **Action**: `DatabaseDriverManager.set_db_driver(driver)` sets a `ContextVar`.
-    *   **Purpose**: Isolates the driver choice to the current request scope without modifying global state.
-3.  **Tiered Resolution (The Fetch)**:
+    *   **Result**: This flags the driver choice for only that specific request. It **does not** call [initialize()](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/core/connection_manager.py#40-44), preventing global state pollution and redundant parsing.
+3.  **Tiered Resolution**:
     *   [get_connection()](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/core/connection_manager.py#84-120) resolves the active driver in this priority:
-        1.  `ContextVar` (Request-specific override)
-        2.  `cls.database_driver` (Global default from startup)
+        1.  `ContextVar` (Request-specific override from Middleware)
+        2.  `cls.database_driver` (Global foundation from Startup Event)
         3.  Fallback to `"asyncpg"`
 
 ### B. Startup Event vs Middleware
@@ -152,9 +156,8 @@ The system follows a strict "Set once, Override when needed" approach.
 | **Frequency** | Once (at start) | Every Request |
 | **Logic** | `PostgresConnection.initialize()` | `DatabaseDriverManager.set_db_driver()` |
 | **Focus** | **Global Foundation**: Pools & Strings | **Request Scope**: Isolation & Leasing |
-| **Safe Cleanup** | Shuts down clusters on exit | Guarantees connection release via `async with` |
-
-**Concept**: The [startup_event](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/app/extensions/startup_event.py#102-156) builds the "factory," and the [middleware](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/app/extensions/setup_middlewares.py#17-80) manages the specific "items" (connections) produced by that factory for each user request.
+| **Safety** | Sets foundation for all workers | Shields requests from each other |
+| **Teardown** | Shuts down clusters on app exit | Guarantees release via `async with` |
 
 ### C. Execution Diagram
 
@@ -172,18 +175,21 @@ graph TD
 
 ## 6. Testing Connection Strategy
 
-The testing suite handles connections through specialized [pytest](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/tests/conftest.py#36-43) fixtures in [tests/conftest.py](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/tests/conftest.py).
+The testing suite ensures total control over connections via specialized fixtures.
 
-### A. Unit Tests (Isolated)
-*   **Fixtures**: [db_service](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/tests/conftest.py#78-89), [api_client](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/tests/conftest.py#150-184), [async_api_client](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/tests/conftest.py#186-222).
-*   **Logic**: Uses `unittest.mock` to replace the database layer entirely. 
-*   **Connection**: **Zero**. No network calls are made. [PostgresConnection](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/core/connection_manager.py#12-167) is never initialized.
+### A. Summary of Differences
+
+| Feature | App Startup | Pytest Integration | Pytest Unit |
+| :--- | :--- | :--- | :--- |
+| **Initializer** | [startup_event.py](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/app/extensions/startup_event.py) | [real_db_service](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/tests/conftest.py#91-104) fixture | None (Mocked) |
+| **Logic** | [initialize()](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/core/connection_manager.py#40-44) once | [initialize()](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/core/connection_manager.py#40-44) per fixture | No initialization |
+| **Driver** | From [settings.toml](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/toml_config/settings.toml) | Forced to [asyncpg](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/core/connection_manager.py#45-63) | None / Mocked |
+| **Network** | Real | Real | **Zero** |
 
 ### B. Integration Tests (Real Access)
-*   **Fixtures**: [real_db_service](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/tests/conftest.py#91-104), [real_api_client](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/tests/conftest.py#224-241).
-*   **Logic**: Connects to the real local database using credentials from `.secrets.toml`.
-*   **Lifecycle**:
-    1.  **Fixtures Setup**: Calls `PostgresConnection.initialize()`.
-    2.  **Test Run**: Executes real SQL against the database.
-    3.  **Fixture Teardown**: Calls `PostgresConnection.close()` to ensure the pool is destroyed and connections are released immediately.
-*   **Safety Guard**: Integration tests are skipped by default. They require the `--run-integration` flag to activate real database pooling.
+Fixtures like [real_db_service](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/tests/conftest.py#91-104) recreate the foundation for every test:
+1.  **Initialize**: Inside the fixture, `PostgresConnection.initialize(driver="asyncpg")` builds the URLs.
+2.  **Teardown**: The fixture calls `await PostgresConnection.close()` to destroy the pool immediately, preventing connection leakage in large test suites.
+
+### C. Unit Tests (Isolated)
+Fixtures like [db_service](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/tests/conftest.py#78-89) or [api_client](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/tests/conftest.py#150-184) **never** call [initialize()](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/core/connection_manager.py#40-44). They use `unittest.mock` to intercept all database calls, making them instant and safe with zero hardware dependencies.
