@@ -6,6 +6,7 @@ import asyncpg
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from src.shared.configuration.config import env_config_manager
+from src.shared.db.core.driver_context import DatabaseDriverManager
 
 
 class PostgresConnection:
@@ -84,7 +85,10 @@ class PostgresConnection:
     @asynccontextmanager
     async def get_connection(cls):
         """Get a connection based on the selected database type."""
-        if cls.database_driver == "asyncpg":
+        # Prioritize context-scoped driver (e.g. from middleware), fall back to global driver
+        driver = DatabaseDriverManager.get_db_driver() or cls.database_driver or "asyncpg"
+
+        if driver == "asyncpg":
             pool = await cls.get_asyncpg_pool()
             async with pool.acquire() as conn:
                 async with conn.transaction():
@@ -93,7 +97,7 @@ class PostgresConnection:
                     except Exception as e:
                         print(f"Error during database operation with asyncpg: {str(e)}")
                         raise
-        elif cls.database_driver == "sqlalchemy":
+        elif driver == "sqlalchemy":
             engine = await cls.get_sqlalchemy_engine()
             if cls.AsyncSessionLocal is None:
                 cls.AsyncSessionLocal = async_sessionmaker(
@@ -112,7 +116,7 @@ class PostgresConnection:
                     )
                     raise
         else:
-            raise ValueError(f"Unsupported database type specified: {cls.database_driver}")
+            raise ValueError(f"Unsupported database type specified: {driver}")
 
 
 

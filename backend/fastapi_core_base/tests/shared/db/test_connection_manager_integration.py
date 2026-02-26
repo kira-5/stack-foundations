@@ -8,7 +8,7 @@ async def test_get_connection_returns_valid_asyncpg(real_db_service):
     """
     61: get_connection() returns a valid asyncpg connection.
     """
-    async with await PostgresConnection.get_connection() as conn:
+    async with PostgresConnection.get_connection() as conn:
         assert conn is not None
         # Verify it's a real asyncpg connection by running a simple query
         res = await conn.fetchval("SELECT 1")

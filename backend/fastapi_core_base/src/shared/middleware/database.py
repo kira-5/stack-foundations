@@ -4,7 +4,7 @@ from sqlalchemy.exc import DatabaseError
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.shared.db.core.connection_manager import PostgresConnection
-from src.shared.db.drivers import DatabaseDriverManager, DatabaseDrivers
+from src.shared.db.core.driver_context import DatabaseDriverManager, DatabaseDrivers
 
 
 class DatabaseSessionMiddleware(BaseHTTPMiddleware):
@@ -13,14 +13,12 @@ class DatabaseSessionMiddleware(BaseHTTPMiddleware):
         # Get the database driver from the query parameter
         db_driver = request.query_params.get(
             "db_driver",
-            DatabaseDrivers.AIO_PG,
+            DatabaseDrivers.ASYNC_PG,
         )  # Default to asyncpg
 
         # Set the database driver for the context variable
+        # get_connection() will now automatically pick this up or fall back to global
         DatabaseDriverManager.set_db_driver(db_driver)
-
-        # Set the database driver for the connection manager
-        PostgresConnection.initialize(db_driver)
 
         # Capture the request body and store it in state
         try:

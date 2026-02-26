@@ -5,8 +5,8 @@ from datetime import datetime, timedelta
 
 from src.shared.configuration.config import env_config_manager
 from src.shared.configuration.constants import LogEmoji
-from src.shared.db.connections import PostgresConnection
-from src.shared.db.drivers import DatabaseDriverManager, DatabaseDrivers
+from src.shared.db.core.connection_manager import PostgresConnection
+from src.shared.db.core.driver_context import DatabaseDriverManager, DatabaseDrivers
 from src.shared.logging import settings as logger_settings
 from src.shared.services.logging_service import LoggingService
 from src.shared.user_management import utils as um_utils

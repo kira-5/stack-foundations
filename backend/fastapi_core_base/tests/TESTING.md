@@ -66,6 +66,23 @@ All commands should be run from the `backend/fastapi_core_base` directory.
 | **Integration Only** | Module | `PYTHONPATH=. uv run pytest tests/<path> -m integration --run-integration` |
 | **Integration Only** | Global | `PYTHONPATH=. uv run pytest -m integration --run-integration` |
 
+
+```ssh
+1. Run Everything (Unit + Integration)
+PYTHONPATH=. uv run pytest --run-integration -v
+
+2. Run Only Unit Tests (Fast, No DB required)
+PYTHONPATH=. uv run pytest -m unit -v
+
+3. Run Only Integration Tests (Real DB required)
+PYTHONPATH=. uv run pytest -m integration --run-integration -v
+
+4. Run with Coverage Report
+PYTHONPATH=. uv run pytest --run-integration --cov=src --cov-report=term-missing
+
+
+```
+
 ### Detailed Commands
 
 ```bash
