@@ -60,9 +60,10 @@ fastapi_core_base/              # Project Root (Git Root)
 │   └── shared/                 # Tests for internal core libraries
 │
 ├── docs/                       # PROJECT DOCUMENTATION
-│   ├── architecture/           # System diagrams (ADRs)
-│   ├── jira/                   # Task tracking & status docs
-│   └── technical/              # API Specs and setup guides
+│   ├── architecture/           # System diagrams & ADRs (e.g., parquet_design.md)
+│   ├── technical/              # API Specs & DB Specs (e.g., db_system_spec.md)
+│   ├── concepts/               # Learning guides (e.g., local_olap_guide.md)
+│   └── jira/                   # Task tracking & status docs
 │
 ├── logs/                       # Application logs (Gitignored)
 │   └── app.log
@@ -73,7 +74,7 @@ fastapi_core_base/              # Project Root (Git Root)
 │   └── client_b/
 │       └── local.db
 │
-├── data/                       # CLIENT PARQUET STORAGE (Gitignored)
+├── parquet_data/               # CLIENT PARQUET STORAGE (Gitignored)
 │   ├── client_a/               # Follows same naming convention
 │   │   ├── raw/
 │   │   └── processed/
@@ -102,7 +103,7 @@ fastapi_core_base/              # Project Root (Git Root)
 
 
 
-
+DB Folder Structure
 src/shared/
 ├── services/
 │   └── database_service.py        # The Orchestrator facade. Consolidates APIs for transactional, analytical, batch, and bulk queries.
