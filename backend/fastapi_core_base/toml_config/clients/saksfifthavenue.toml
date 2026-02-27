@@ -23,6 +23,9 @@ TENANT_ID = "saksfifthavenue"
 # Short alias for the client.
 CLIENT_ALIAS = "saksfifthavenue"
 
+# Tenant App Schema
+TENANT_APP_SCHEMA = "base_pricing"
+
 
 # =============================================================================
 # 2. GCP Infrastructure

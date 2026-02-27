@@ -10,7 +10,9 @@ To reconstruct this system, an AI model must implement these five core pillars:
 ### A. The Engine Hub (`engines/`)
 *   **Postgres Native ([asyncpg](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/core/connection_manager.py#45-63))**: Primary engine for low-latency CRUD and binary protocols.
 *   **ORM Layer (`SQLAlchemy`)**: Asynchronous engine for structured schema management and complex query building.
-*   **Analytical Bridge (**ADBC**)**: Direct Arrow-to-Polars connectivity to bypass Python object overhead.
+*   **Analytical Bridge (**ADBC**)**: Direct Arrow-to-Polars connectivity for Postgres.
+*   **Local High-Speed (**DuckDB**)**: Native analytical engine for fast, local tenant data.
+*   **Large-Scale Lakehouse (**Spark/Ray/Parquet**)**: Distributed engines for massive transaction history.
 
 ### B. Intelligent Connection Manager ([PostgresConnection](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/core/connection_manager.py#12-167))
 *   **Dual-Pooling Strategy**: Separate managed pools for [asyncpg](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/core/connection_manager.py#45-63) (Native) and `SQLAlchemy` (ORM).
@@ -24,8 +26,9 @@ To reconstruct this system, an AI model must implement these five core pillars:
 4.  **Bulk**: Ultra-fast binary ingestion (100k+ rows) via Postgres **COPY**.
 
 ### D. Adaptive Execution Engine (`AsyncQueryExecutor`)
-*   **Heuristic Detection**: Automatically detects [read](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/tests/shared/db/test_query_analyzer_unit.py#51-53) vs [write](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/tests/shared/db/test_query_analyzer_unit.py#38-40) operations.
-*   **Memory Intelligence**: Uses [psutil](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/tests/shared/db/test_query_analyzer_unit.py#143-148) to sense system RAM; automatically switches to [stream](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/execution_lanes/transactional.py#78-108) mode if RAM < 0.5GB.
+*   **Heuristic Detection**: Automatically detects read vs write operations.
+*   **Smart Routing**: Transparently routes queries between Postgres, DuckDB, Spark, and Ray. Defaults to local-first (DuckDB) for high-performance scale-down, with "warm-swap" hooks for distributed scale-up.
+*   **Memory Intelligence**: Automatically switches fetch strategies based on available system RAM.
 *   **Life-Cycle Decorator**: `@handle_streaming_lifetime` keeps sessions alive for asynchronous generators.
 
 ### E. Operational Monitoring & Safeties
@@ -75,7 +78,21 @@ To reconstruct this system, an AI model must implement these five core pillars:
 6. **🛠️ Productivity & Architecture**
 *   **Contextual Driving**: Uses `ContextVars` to switch drivers globally across a request without passing state objects.
 *   **ORM Mixins**: `TimestampMixin` for automated `created_at`/`updated_at` column management.
-*   **Global Constants**: Centralized `constants.py` mapping all Schemas, Tables, Materialized Views, and Stored Procedures for type-safe SQL construction.
+*   **Global Constants**: Centralized `constants.py` mapping all Schemas, Tables, and Engine Strategy hints for type-safe execution.
+
+7. **🏛️ Multi-Tenant Medallion Storage**
+*   **Zero-Maintenance Creation**: `PathResolver` automatically creates tenant-isolated directories for `duckdb_data` and `parquet_data`.
+*   **Data Tiering**: Parquet data is organized into `raw`, `silver`, and `gold` layers. Storage is engine-agnostic (readable by DuckDB, Spark, or Ray).
+
+#### Filesystem Visualization
+```text
+/Users/abhisheksingh/Documents/Development/stack-foundations/
+├── duckdb_data/lesliespool/local.db        # Performance Layer (One File)
+└── parquet_data/lesliespool/               # Storage Lake (Medallion Folders)
+    ├── bronze/ (Raw Parquet)
+    ├── silver/ (Cleaned/Schema Enforced)
+    └── gold/   (Business Ready/Aggregated)
+```
 
 ---
 

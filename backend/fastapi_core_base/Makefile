@@ -46,8 +46,9 @@ run-client-a: ## Run App specifically for Client A
 # --- Setup & Cleanup ---
 
 bootstrap: sync ## Initial project setup (create folders and install hooks)
-	mkdir -p logs data duckdb_data
-	touch logs/app.log data/.gitkeep duckdb_data/.gitkeep
+	mkdir -p logs duckdb_data
+	mkdir -p parquet_data/raw parquet_data/silver parquet_data/gold
+	touch logs/app.log duckdb_data/.gitkeep parquet_data/.gitkeep
 	$(UV) run pre-commit install
 	@echo "Project Bootstrapped! Try running 'make pc-all' to verify hooks."
 

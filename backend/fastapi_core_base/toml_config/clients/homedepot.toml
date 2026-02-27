@@ -23,6 +23,9 @@ TENANT_ID = "homedepot"
 # Short alias for the client.
 CLIENT_ALIAS = "homedepot"
 
+# Tenant App Schema
+TENANT_APP_SCHEMA = "base_pricing"
+
 
 # =============================================================================
 # 2. GCP Infrastructure

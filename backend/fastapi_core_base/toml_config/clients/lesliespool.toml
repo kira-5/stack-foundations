@@ -23,6 +23,10 @@ TENANT_ID = "lesliespool"
 # Short alias for the client.
 CLIENT_ALIAS = "lesliespool"
 
+# Tenant App Schema
+# The Postgres schema where this client's application tables live.
+TENANT_APP_SCHEMA = "base_pricing"
+
 
 # =============================================================================
 # 2. GCP Infrastructure

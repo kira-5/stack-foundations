@@ -1,7 +1,7 @@
 """Logger settings to avoid circular imports."""
 
 from typing import Any
-from src.shared.config import settings
+from src.shared.configuration.config import settings
 from src.shared.logging import constants as logger_constants
 
 

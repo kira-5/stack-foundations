@@ -5,22 +5,22 @@ This guide explains the four supported ways to execute queries using the `databa
 
 ### 🏁 Driver Usage Summary
 
-| Method | Underlying Driver | Purpose |
+| Method | Engine (Auto-Routed) | Purpose |
 | :--- | :--- | :--- |
-| **[execute_transactional_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/execution_lanes/transactional.py)** | [asyncpg](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/engines/postgres.py) or `SQLAlchemy` | Standard API / CRUD |
-| **[execute_analytical_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/services/database_service.py)** | **ADBC** (via Polars) | Fast **READ** (Massive data) |
-| **[execute_batch_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/services/database_service.py)** | [asyncpg](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/engines/postgres.py) | Fast **WRITE** (1k - 10k rows) |
-| **[execute_bulk_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/execution_lanes/bulk.py)** | [asyncpg](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/engines/postgres.py) | Ultra-Fast **WRITE** (100k+ rows) |
+| **[execute_transactional_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/execution_lanes/transactional.py)** | **Postgres** (asyncpg) | Standard API / CRUD |
+| **[execute_analytical_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/services/database_service.py)** | **Postgres (ADBC)** / **DuckDB** / **Spark** / **Ray** | Fast **READ** (Massive data) |
+| **[execute_batch_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/services/database_service.py)** | **Postgres** (asyncpg) | Fast **WRITE** (1k - 10k rows) |
+| **[execute_bulk_query](file:///Users/abhisheksingh/Documents/Development/stack-foundations/backend/fastapi_core_base/src/shared/db/execution_lanes/bulk.py)** | **Postgres** (asyncpg) | Ultra-Fast **WRITE** (100k+ rows) |
 
 ---
 
 ### 🏗️ Master Feature Inventory (Consolidated)
 
 1. **🔀 Multi-Driver Engine Hub**
-*   **Native Postgres (asyncpg)**: Used for raw speed and direct binary protocol access.
-*   **ORM Ready (SQLAlchemy)**: Provides structured data modelling and relationship management.
-*   **Cloud Analytics (BigQuery)**: Integrated client for Google Cloud BigQuery operations.
-*   **Extreme Exports (ADBC)**: Uses Arrow Database Connectivity for pulling millions of rows at C-speed directly into Polars.
+*   **Postgres Native**: High-speed binary protocol for transactional work.
+*   **Analytical Bridge (**ADBC**)**: Zero-copy Arrow connectivity for Postgres.
+*   **Local High-Speed (**DuckDB**)**: Direct access to tenant Parquet/DuckDB files.
+*   **Large-Scale Lakehouse (**Spark/Ray**)**: Massively parallel execution for billion-row datasets.
 
 2. **🛣️ The "Four Lane" Execution API**
 *   **Transactional Lane**: Standard API/CRUD work returning Python `list[dict]`.
@@ -61,6 +61,23 @@ print(status["asyncpg"])  # {'active': True, 'size': 10, 'free': 8, ...}
 ```
 
 ---
+
+## 0. Dynamic Routing & The "One List" Rule
+The system automatically chooses the best engine based on how you reference tables.
+
+### Rule 1: Schema-Qualified (Postgres)
+Any table prefixed with a schema (e.g., `bp_tenant.users`) goes to **Postgres**. This is mandatory for transactional work.
+
+### Rule 2: Flat Names with `bp_` (Analytical)
+Using a flat name like `bp_transaction_data` triggers the **Smart Router**. 
+- Most `bp_` tables default to **DuckDB** for fast local development.
+- The system is **Spark/Ray Ready**: Configuration/hints can instantly switch heavy tables to distributed engines.
+
+### Rule 3: Manual Engine Override
+Force an engine using a comment hint:
+```sql
+SELECT /* engine: duckdb */ * FROM my_table;
+```
 
 ## 1. Raw SQL (No Parameters)
 Best for simple queries that don't depend on user input.
@@ -176,14 +193,13 @@ It uses the **ADBC** (Arrow Database Connectivity) driver to pull data directly 
 ```python
 from src.shared.services.database_service import database_service
 
-# Fetches 1M rows nearly instantly with zero memory spikes
-df = database_service.execute_analytical_query(
-    "SELECT * FROM massive_analytical_table"
+# Automatically routes to the best engine (ADBC, DuckDB, Spark, or Ray)
+df = await database_service.execute_analytical_query(
+    "SELECT * FROM bp_transaction_data_daily"
 )
 
 # Returns a Polars DataFrame
 print(df.head())
-df.write_parquet("data_export.parquet")
 ```
 
 ### Streaming Massive Files via FastAPI

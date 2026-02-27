@@ -13,6 +13,7 @@ class AnalyticalExecutor:
         self,
         query: str,
         query_source: str = "unknown",
+        db_type: str = "duckdb",
     ) -> pl.DataFrame:
         """
         Executes a query and returns a Polars DataFrame using the ADBC driver.
@@ -25,6 +26,19 @@ class AnalyticalExecutor:
         Returns:
             pl.DataFrame: The resulting data as a Polars DataFrame.
         """
+        if db_type in ["duckdb", "federated"]:
+            # For DuckDB or Federated, we use the tenant-specific file connection
+            from src.shared.db.engines.duckdb import attach_postgres, get_duckdb_connection
+            con = get_duckdb_connection()
+            try:
+                if db_type == "federated":
+                    attach_postgres(con)
+                
+                # Polars can read from a DuckDB connection
+                return pl.read_database(query=query, connection=con)
+            finally:
+                con.close()
+
         connection_url = get_adbc_connection_url()
 
         start_time = time.perf_counter()
@@ -43,6 +57,6 @@ class AnalyticalExecutor:
             PerformanceWatchdog.audit_query(
                 query_name=query_source,
                 query=query,
-                params=None,  # ADBC driver in Polars doesn't explicitly take standard parameterized dicts in this interface natively
+                params=None,  # ADBC driver in Polars doesn't explicitly take standard parameterized dicts 
                 duration=duration
             )

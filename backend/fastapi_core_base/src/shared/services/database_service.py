@@ -161,20 +161,35 @@ class DatabaseService:
 
         return result
 
-    def execute_analytical_query(
+    async def execute_analytical_query(
         self,
         query: str,
+        db_type: Literal["postgres", "duckdb", "federated", "ray", "spark"] | None = None,
         query_source: str | None = None,
     ) -> pl.DataFrame:
         """
         Execute a high-performance analytical query returning a Polars DataFrame.
-        Uses ADBC to bypass Python object overhead.
+        Engine is automatically selected via QueryAnalyzer if not provided.
         """
+        from src.shared.db.intelligence.query_analyzer import QueryAnalyzer
+        from src.shared.db.core.tenant_context import TenantContext
+
+        # 1. Identify query source for logging
         if query_source is None:
             caller_name = get_caller_function_name()
             query_source = caller_name if caller_name != "unknown" else extract_query_source_from_sql(query)
 
-        return self.analytical_executor.execute_analytical_query(query=query, query_source=query_source)
+        # 2. Dynamic Routing if db_type is not explicitly passed
+        if db_type is None:
+            tenant_id = TenantContext.get_tenant_id()
+            db_type = QueryAnalyzer.route_query(query, tenant_id=tenant_id)
+            logger.info(f"Smart Routing: Decided on '{db_type}' for query '{query_source}'")
+
+        return self.analytical_executor.execute_analytical_query(
+            query=query, 
+            query_source=query_source,
+            db_type=db_type
+        )
 
     async def execute_batch_query(
         self,

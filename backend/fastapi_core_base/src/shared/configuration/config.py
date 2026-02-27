@@ -13,9 +13,16 @@ from src.shared.configuration import (
     gcp_secret_manager,
     mtp_secret_manager,
 )
-from src.shared.services.logging_service import LoggingService
 
-logger = LoggingService.get_logger(__name__)
+
+def get_logger(name: str):
+    """Lazy-load logger to prevent circular imports during bootstrap."""
+    from src.shared.services.logging_service import LoggingService
+
+    return LoggingService.get_logger(name)
+
+
+logger = get_logger(__name__)
 
 
 class EnvConfigManager:
@@ -727,3 +734,6 @@ class EnvConfigManager:
 
 # Usage
 env_config_manager = EnvConfigManager()
+settings = env_config_manager.environment_settings
+
+__all__ = ["env_config_manager", "settings"]

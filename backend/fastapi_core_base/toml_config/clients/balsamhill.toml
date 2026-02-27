@@ -10,6 +10,7 @@
 CLIENT_NAME = "balsamhill"
 TENANT_ID = "balsamhill"
 CLIENT_ALIAS = "balsamhill"
+TENANT_APP_SCHEMA = "base_pricing"
 
 # GCP Project Configuration
 PROJECT_ID = "balsambrands-20022025"
