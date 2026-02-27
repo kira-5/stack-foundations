@@ -1,6 +1,6 @@
 import re
 from typing import Literal
-from src.shared.db.constants import Schemas, Tables, RouteStrategy
+from src.shared.db.constants import Schemas, RouteStrategy
 
 try:
     import psutil

@@ -1,7 +1,7 @@
 [project]
 name = "fastapi-core-base"
-version = "0.1.0"
-description = "Add your description here"
+version = "2.1.12"
+description = "FastAPI Core Base Project with Shared Infrastructure"
 readme = "README.md"
 requires-python = ">=3.12"
 
@@ -15,6 +15,16 @@ dependencies = [
     "firebase-admin",
     "google-cloud-bigquery>=3.40.1",
 ]
+
+[project.scripts]
+run-app = "app.main:run"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["tests*", "*.tests*"]
 
 [dependency-groups]
 
