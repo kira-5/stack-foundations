@@ -7,22 +7,10 @@ import toml
 from dotenv import load_dotenv
 from dynaconf import Dynaconf
 
-from src.shared.configuration import (
-    constants as config_constants,
-    email_notification_secret_manager,
-    gcp_secret_manager,
-    mtp_secret_manager,
-)
+from src.shared.configuration import constants as config_constants
 
-
-def get_logger(name: str):
-    """Lazy-load logger to prevent circular imports during bootstrap."""
-    from src.shared.services.logging_service import LoggingService
-
-    return LoggingService.get_logger(name)
-
-
-logger = get_logger(__name__)
+import logging
+logger = logging.getLogger(__name__)
 
 
 class EnvConfigManager:
@@ -147,6 +135,8 @@ class EnvConfigManager:
 
     def initialize_gcp_secret_loader(self):
         """Initialize the Google Secret Loader for fetching secrets."""
+        from src.shared.configuration import gcp_secret_manager
+
         # Use dynamic configuration to get the secret name
         secret_name = self.get_dynamic_setting("GOOGLE_SECRET_NAME", "default_secret")
         return self._initialize_secret_loader(
@@ -156,6 +146,8 @@ class EnvConfigManager:
 
     def initialize_mtp_secret_loader(self):
         """Initialize the MTP Secret Loader for fetching secrets."""
+        from src.shared.configuration import mtp_secret_manager
+
         return self._initialize_secret_loader(
             mtp_secret_manager.MtpSecretsManagerLoader,
             self.environment_settings.MTP_SECRET_NAME,
@@ -163,6 +155,8 @@ class EnvConfigManager:
 
     def initialize_email_notification_secret_loader(self):
         """Initialize the Notification Email Secret Loader for fetching secrets."""
+        from src.shared.configuration import email_notification_secret_manager
+
         return self._initialize_secret_loader(
             email_notification_secret_manager.EmailNotificationSecretManagerLoader,
             self.environment_settings.EMAIL_NOTIFICATION_SECRET_NAME,

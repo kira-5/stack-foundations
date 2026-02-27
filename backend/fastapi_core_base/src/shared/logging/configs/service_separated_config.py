@@ -2,7 +2,11 @@
 
 import logging
 
-from src.shared.configuration.config import settings
+def _get_settings():
+    """Lazy-load settings to avoid circular imports during bootstrap."""
+    from src.shared.configuration.config import settings
+
+    return settings
 from src.shared.logging import LogConfigInterface
 from src.shared.logging import constants as logger_constants
 
@@ -65,7 +69,7 @@ def get_service_enabled_setting(service: str, default: bool = True) -> bool:
 
     # Get from Dynaconf settings
     try:
-        setting_value = settings.get(config_key, default)
+        setting_value = _get_settings().get(config_key, default)
         if isinstance(setting_value, bool):
             return setting_value
         if isinstance(setting_value, str):

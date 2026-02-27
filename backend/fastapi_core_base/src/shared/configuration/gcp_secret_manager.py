@@ -1,8 +1,7 @@
 from google.cloud import secretmanager
 
-from src.shared import logging as shared_logging
-
-logger = shared_logging.get_logger(__name__)
+import logging
+logger = logging.getLogger(__name__)
 
 
 class GoogleSecretManagerLoader:
